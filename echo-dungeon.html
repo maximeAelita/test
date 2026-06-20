@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05060c" />
+<title>ECHO DUNGEON</title>
+<style>
+  :root{ --neon:#46e6ff; --gold:#ffcf4d; --bad:#ff4d6d; --good:#5dff9b; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; height:100%; overflow:hidden; background:#05060c;
+    font-family:"Trebuchet MS",system-ui,Segoe UI,Roboto,sans-serif; color:#dfeffd; }
+  body{ position:fixed; inset:0; touch-action:none; overscroll-behavior:none; }
+  #stage{ position:absolute; inset:0; }
+  canvas{ display:block; image-rendering:auto; }
+
+  /* ---------- HUD ---------- */
+  #hud{ position:absolute; inset:0; pointer-events:none; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .panel{ position:absolute; top:12px; left:12px; display:flex; gap:14px; align-items:center;
+    background:rgba(8,12,22,.45); border:1px solid rgba(70,230,255,.25); border-radius:12px;
+    padding:8px 12px; backdrop-filter:blur(4px); font-size:14px; letter-spacing:.5px; }
+  .stat{ display:flex; flex-direction:column; line-height:1.15; }
+  .stat b{ font-size:16px; }
+  .stat span{ font-size:10px; opacity:.6; text-transform:uppercase; letter-spacing:1px; }
+  #hp{ color:var(--bad); } #floor{ color:var(--neon); } #loot{ color:var(--gold); } #keyst{ color:var(--good); }
+  #echoMeter{ position:absolute; top:12px; right:12px; width:120px; height:46px;
+    background:rgba(8,12,22,.45); border:1px solid rgba(70,230,255,.25); border-radius:12px; padding:6px 10px; }
+  #echoMeter .lab{ font-size:10px; opacity:.6; text-transform:uppercase; letter-spacing:1px; }
+  #echoBar{ height:8px; margin-top:6px; border-radius:6px; background:rgba(255,255,255,.12); overflow:hidden; }
+  #echoFill{ height:100%; width:100%; background:linear-gradient(90deg,#1e90ff,#46e6ff); transition:width .05s linear; }
+
+  /* ---------- touch controls ---------- */
+  #joy{ position:absolute; left:max(18px,env(safe-area-inset-left)); bottom:max(22px,env(safe-area-inset-bottom));
+    width:140px; height:140px; border-radius:50%; border:2px solid rgba(70,230,255,.3);
+    background:radial-gradient(circle,rgba(70,230,255,.06),transparent 70%); pointer-events:auto; touch-action:none; }
+  #nub{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%;
+    background:rgba(70,230,255,.35); border:1px solid rgba(70,230,255,.6); }
+  #echoBtn{ position:absolute; right:max(22px,env(safe-area-inset-right)); bottom:max(34px,env(safe-area-inset-bottom));
+    width:118px; height:118px; border-radius:50%; pointer-events:auto; touch-action:none;
+    border:2px solid rgba(255,207,77,.55); background:radial-gradient(circle,rgba(255,207,77,.18),rgba(255,207,77,.04));
+    color:#ffe9a8; font-weight:bold; font-size:15px; letter-spacing:1px; display:flex; align-items:center; justify-content:center; text-align:center; }
+  body.no-touch #joy, body.no-touch #echoBtn{ display:none; }
+
+  /* ---------- overlays ---------- */
+  .screen{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:18px; padding:28px; background:radial-gradient(circle at 50% 40%,rgba(10,16,30,.78),rgba(3,4,9,.95));
+    pointer-events:auto; z-index:5; }
+  .title{ font-size:clamp(34px,9vw,72px); font-weight:800; letter-spacing:6px;
+    color:#eaffff; text-shadow:0 0 18px rgba(70,230,255,.7),0 0 40px rgba(70,230,255,.35); margin:0; }
+  .sub{ max-width:560px; line-height:1.6; font-size:15px; opacity:.85; }
+  .sub b{ color:var(--neon); }
+  .keys{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; font-size:13px; opacity:.8; }
+  .keys kbd{ background:rgba(70,230,255,.12); border:1px solid rgba(70,230,255,.4); border-radius:6px; padding:3px 8px; font-family:inherit; }
+  .btn{ pointer-events:auto; cursor:pointer; border:1px solid rgba(70,230,255,.6); border-radius:12px;
+    background:linear-gradient(180deg,rgba(70,230,255,.22),rgba(70,230,255,.06)); color:#eaffff;
+    font-size:18px; font-weight:700; letter-spacing:2px; padding:14px 34px; text-shadow:0 0 10px rgba(70,230,255,.6); }
+  .btn:active{ transform:translateY(1px); }
+  .hidden{ display:none !important; }
+  #toast{ position:absolute; left:50%; top:18%; transform:translateX(-50%); padding:10px 18px; border-radius:10px;
+    background:rgba(8,12,22,.7); border:1px solid rgba(70,230,255,.3); font-size:15px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:6; }
+  .endbig{ font-size:clamp(30px,8vw,60px); font-weight:800; letter-spacing:4px; }
+</style>
+</head>
+<body class="no-touch">
+  <div id="stage"><canvas id="c"></canvas></div>
+
+  <div id="hud">
+    <div class="panel">
+      <div class="stat"><b id="hp">100</b><span>integrity</span></div>
+      <div class="stat"><b id="floor">1</b><span>depth</span></div>
+      <div class="stat"><b id="loot">0</b><span>relics</span></div>
+      <div class="stat"><b id="keyst">—</b><span>sigil</span></div>
+    </div>
+    <div id="echoMeter"><div class="lab">echo pulse</div><div id="echoBar"><div id="echoFill"></div></div></div>
+
+    <div id="joy"><div id="nub"></div></div>
+    <button id="echoBtn">PULSE</button>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="start" class="screen">
+    <h1 class="title">ECHO&nbsp;DUNGEON</h1>
+    <p class="sub">The dungeon is utterly dark. You see nothing — until you <b>move</b>.
+      Every step sends out a wave of sound that briefly paints the walls, treasure, and the things hunting you.
+      Between pulses there is only black. <b>Navigate by sound and memory.</b><br><br>
+      Find the glowing <b>sigil</b>, then reach the <b>exit portal</b> to descend deeper. Avoid the red echoes.</p>
+    <div class="keys">
+      <kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd> move &nbsp;·&nbsp; <kbd>Space</kbd> echo pulse &nbsp;·&nbsp; <kbd>Esc</kbd> pause
+    </div>
+    <button id="startBtn" class="btn">ENTER</button>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <h1 class="title" style="font-size:clamp(26px,7vw,52px)">PAUSED</h1>
+    <button id="resumeBtn" class="btn">RESUME</button>
+  </div>
+
+  <div id="end" class="screen hidden">
+    <div id="endTitle" class="endbig">—</div>
+    <p id="endText" class="sub">—</p>
+    <button id="againBtn" class="btn">DESCEND AGAIN</button>
+  </div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.161.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* =====================================================================
+   ECHO DUNGEON — single-file 3D puzzle-RPG prototype
+   - Pitch-black dungeon revealed only by expanding sound waves
+   - Custom echo shader shared by every surface (instanced walls + floor)
+   - Cel-shaded / anime banding + rim, black outlines on actors
+   - 75% internal render scale, delta-timed loop targeting 60fps
+   - Keyboard + mouse + touch (virtual joystick / pulse button)
+   - Spatial Web Audio so you can *hear* where enemies are
+   ===================================================================== */
+
+const TILE = 2;                 // world size of one grid cell
+const MAX_WAVES = 16;           // shader can light from this many waves at once
+const RENDER_SCALE = 0.75;      // internal resolution (per request)
+
+// ---------- renderer / scene ----------
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:false, powerPreference:'high-performance' });
+renderer.setClearColor(0x05060c, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05060c, 0.055);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 200);
+const camOffset = new THREE.Vector3(0, 15.5, 11);   // anime 3/4 overhead
+
+// ---------- shared echo uniforms ----------
+const waveOrigins = [], waveParams = [];
+for (let i = 0; i < MAX_WAVES; i++){ waveOrigins.push(new THREE.Vector3()); waveParams.push(new THREE.Vector4()); }
+const U = {
+  uWaveOrigins:{ value: waveOrigins },     // xyz origin of each active wave
+  uWaveParams :{ value: waveParams },      // x=radius y=intensity z=thickness w=hue-shift
+  uWaveCount  :{ value: 0 },
+  uTime       :{ value: 0 },
+  uPlayerPos  :{ value: new THREE.Vector3() },
+};
+
+const VERT = /* glsl */`
+  varying vec3 vWorld; varying vec3 vN;
+  void main(){
+    #ifdef USE_INSTANCING
+      vec4 wp = modelMatrix * instanceMatrix * vec4(position,1.0);
+      vec3 n  = mat3(modelMatrix) * mat3(instanceMatrix) * normal;
+    #else
+      vec4 wp = modelMatrix * vec4(position,1.0);
+      vec3 n  = mat3(modelMatrix) * normal;
+    #endif
+    vWorld = wp.xyz; vN = normalize(n);
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }`;
+
+const FRAG = /* glsl */`
+  precision highp float;
+  #define MAXW ${MAX_WAVES}
+  uniform vec3  uWaveOrigins[MAXW];
+  uniform vec4  uWaveParams[MAXW];
+  uniform int   uWaveCount;
+  uniform float uTime;
+  uniform vec3  uPlayerPos;
+  uniform vec3  uBaseColor;
+  uniform float uEmissive;     // self-glow for treasure / portals
+  uniform float uReach;        // soft persistent glow radius around player
+  varying vec3 vWorld; varying vec3 vN;
+
+  void main(){
+    float lit = 0.0;
+    for (int i = 0; i < MAXW; i++){
+      if (i >= uWaveCount) break;
+      vec3 o = uWaveOrigins[i];
+      vec4 p = uWaveParams[i];                 // x rad, y intensity, z thick
+      float d = distance(vWorld, o);
+      float shell = 1.0 - smoothstep(0.0, p.z, abs(d - p.x));
+      // surfaces facing the wave catch a touch more light
+      vec3 dir = normalize(vWorld - o + 1e-4);
+      float facing = 0.55 + 0.45 * max(dot(vN, -dir), 0.0);
+      lit += shell * p.y * facing;
+    }
+    // faint always-on aura so the player is never 100% lost
+    float aura = (1.0 - smoothstep(0.0, uReach, distance(vWorld, uPlayerPos))) * 0.16;
+    lit += aura;
+    lit = clamp(lit, 0.0, 1.5);
+
+    // cel / anime banding
+    float bands = floor(lit * 4.0 + 0.5) / 4.0;
+    lit = mix(lit, bands, 0.65);
+
+    vec3 col = uBaseColor * lit + uBaseColor * uEmissive;
+    // subtle scanline shimmer for the neon vibe
+    col += uBaseColor * 0.05 * lit * sin(vWorld.y * 8.0 + uTime * 3.0);
+    gl_FragColor = vec4(col, 1.0);
+  }`;
+
+function echoMat(color, { emissive = 0, reach = 4.5 } = {}){
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uWaveOrigins: U.uWaveOrigins, uWaveParams: U.uWaveParams, uWaveCount: U.uWaveCount,
+      uTime: U.uTime, uPlayerPos: U.uPlayerPos,
+      uBaseColor:{ value: new THREE.Color(color) },
+      uEmissive :{ value: emissive },
+      uReach    :{ value: reach },
+    },
+    vertexShader: VERT, fragmentShader: FRAG, fog:false,
+  });
+}
+
+// ---------- live wave list ----------
+const waves = [];   // { origin, r, speed, maxR, intensity, thickness }
+function emitWave(x, z, { speed=14, maxR=20, intensity=1, thickness=1.3 }={}){
+  waves.push({ origin:new THREE.Vector3(x, 0.6, z), r:0, speed, maxR, intensity, thickness });
+}
+function updateWaves(dt){
+  for (let i = waves.length - 1; i >= 0; i--){
+    const w = waves[i];
+    w.r += w.speed * dt;
+    if (w.r > w.maxR){ waves.splice(i,1); continue; }
+  }
+  // strongest-first, cap to MAX_WAVES
+  const live = waves.map(w => {
+    const fade = 1 - w.r / w.maxR;            // dim as it expands
+    return { w, eff: w.intensity * fade * fade };
+  }).sort((a,b) => b.eff - a.eff).slice(0, MAX_WAVES);
+
+  for (let i = 0; i < live.length; i++){
+    const { w, eff } = live[i];
+    waveOrigins[i].copy(w.origin);
+    waveParams[i].set(w.r, eff, w.thickness, 0);
+  }
+  U.uWaveCount.value = live.length;
+}
+
+// =====================================================================
+//  MAZE
+// =====================================================================
+let grid, GW, GH;               // grid[y][x] : 1 wall, 0 floor
+let wallMesh, floorMesh;
+
+function genMaze(cellsX, cellsY){
+  GW = cellsX*2+1; GH = cellsY*2+1;
+  const g = Array.from({length:GH}, () => new Array(GW).fill(1));
+  const stack = [[1,1]]; g[1][1] = 0;
+  const dirs = [[0,-2],[0,2],[-2,0],[2,0]];
+  while (stack.length){
+    const [x,y] = stack[stack.length-1];
+    const opts = [];
+    for (const d of dirs){
+      const nx=x+d[0], ny=y+d[1];
+      if (nx>0 && ny>0 && nx<GW-1 && ny<GH-1 && g[ny][nx]===1) opts.push([nx,ny,d]);
+    }
+    if (!opts.length){ stack.pop(); continue; }
+    const [nx,ny,d] = opts[(Math.random()*opts.length)|0];
+    g[y+d[1]/2][x+d[0]/2] = 0; g[ny][nx] = 0;
+    stack.push([nx,ny]);
+  }
+  // braid: punch some extra holes so it loops (less dead-end frustration)
+  for (let y=1; y<GH-1; y++) for (let x=1; x<GW-1; x++){
+    if (g[y][x]===1 && Math.random()<0.08 && (x%2 || y%2)) g[y][x]=0;
+  }
+  return g;
+}
+
+const cellToWorld = (cx, cy) => new THREE.Vector3((cx-(GW-1)/2)*TILE, 0, (cy-(GH-1)/2)*TILE);
+const worldToCell = (x, z) => [ Math.round(x/TILE + (GW-1)/2), Math.round(z/TILE + (GH-1)/2) ];
+function isWall(cx, cy){ return cx<0||cy<0||cx>=GW||cy>=GH || grid[cy][cx]===1; }
+
+function bfsFarthest(sx, sy){
+  const dist = Array.from({length:GH}, () => new Array(GW).fill(-1));
+  const q = [[sx,sy]]; dist[sy][sx]=0; let far=[sx,sy], fd=0;
+  while (q.length){
+    const [x,y] = q.shift();
+    if (dist[y][x] > fd){ fd = dist[y][x]; far=[x,y]; }
+    for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, ny=y+dy;
+      if (!isWall(nx,ny) && dist[ny][nx]<0){ dist[ny][nx]=dist[y][x]+1; q.push([nx,ny]); }
+    }
+  }
+  return { far, dist };
+}
+
+function floorCells(){
+  const out=[];
+  for (let y=1;y<GH-1;y++) for (let x=1;x<GW-1;x++) if (grid[y][x]===0) out.push([x,y]);
+  return out;
+}
+
+// =====================================================================
+//  ACTORS / WORLD CONTENT
+// =====================================================================
+const world = new THREE.Group(); scene.add(world);
+let player, exitMesh, sigilMesh;
+const enemies = [], relics = [], plates = [];
+const tmpM = new THREE.Matrix4();
+
+function outline(geo, scale=1.07){
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:0x02030a, side:THREE.BackSide, fog:false }));
+  m.scale.setScalar(scale); return m;
+}
+
+function buildLevel(floorNum){
+  // wipe previous
+  while (world.children.length) world.remove(world.children[0]);
+  enemies.length = 0; relics.length = 0; plates.length = 0; waves.length = 0;
+
+  const size = Math.min(7 + floorNum, 12);
+  grid = genMaze(size, size);
+
+  // ---- floor ----
+  const span = Math.max(GW, GH) * TILE;
+  const fg = new THREE.PlaneGeometry(span, span);
+  fg.rotateX(-Math.PI/2);
+  floorMesh = new THREE.Mesh(fg, echoMat(0x14304a, { reach:5 }));
+  floorMesh.position.y = -0.01; world.add(floorMesh);
+
+  // ---- walls (instanced) ----
+  const wallCells = [];
+  for (let y=0;y<GH;y++) for (let x=0;x<GW;x++) if (grid[y][x]===1){
+    // skip fully-buried walls (all 4 neighbours wall) — never visible, saves instances
+    const open = (x>0&&grid[y][x-1]===0)||(x<GW-1&&grid[y][x+1]===0)||
+                 (y>0&&grid[y-1][x]===0)||(y<GH-1&&grid[y+1][x]===0);
+    if (open) wallCells.push([x,y]);
+  }
+  const wg = new THREE.BoxGeometry(TILE, 3, TILE);
+  wallMesh = new THREE.InstancedMesh(wg, echoMat(0x3aa0ff, { reach:5 }), wallCells.length);
+  wallCells.forEach(([x,y], i) => {
+    const p = cellToWorld(x,y); tmpM.makeTranslation(p.x, 1.5, p.z); wallMesh.setMatrixAt(i, tmpM);
+  });
+  wallMesh.instanceMatrix.needsUpdate = true; world.add(wallMesh);
+
+  // ---- placements ----
+  const start = [1,1];
+  const { far } = bfsFarthest(start[0], start[1]);
+  const exitCell = far;
+  const { far: sigilCell } = bfsFarthest(exitCell[0], exitCell[1]); // far from exit too
+
+  const taken = new Set([start.join(','), exitCell.join(','), sigilCell.join(',')]);
+  const cells = floorCells().filter(c => {
+    const d = Math.hypot(c[0]-start[0], c[1]-start[1]);
+    return d > 3 && !taken.has(c.join(','));
+  });
+  const pick = () => { const i=(Math.random()*cells.length)|0; const c=cells.splice(i,1)[0]; return c; };
+
+  // ---- player ----
+  player = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 0.5, 4, 12), echoMat(0x9be7ff, { emissive:0.10, reach:6 }));
+  body.add(outline(body.geometry, 1.10));
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 10), echoMat(0xffffff, { emissive:0.5 }));
+  visor.position.set(0, 0.34, 0.30);
+  player.add(body, visor);
+  const ps = cellToWorld(start[0], start[1]); player.position.set(ps.x, 0.62, ps.z);
+  player.userData = { hp:100, hasSigil:false, hurtCd:0, moved:0, facing:0 };
+  world.add(player);
+
+  // ---- exit portal ----
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.16, 12, 28), echoMat(0x5dff9b, { emissive:0.55, reach:7 }));
+  ring.rotation.x = Math.PI/2;
+  exitMesh = new THREE.Group(); exitMesh.add(ring);
+  const ep = cellToWorld(exitCell[0], exitCell[1]); exitMesh.position.set(ep.x, 1.0, ep.z);
+  exitMesh.userData = { cell:exitCell }; world.add(exitMesh);
+
+  // ---- sigil (key) ----
+  sigilMesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.5), echoMat(0xffe27a, { emissive:0.6, reach:7 }));
+  sigilMesh.add(outline(sigilMesh.geometry, 1.12));
+  const sp = cellToWorld(sigilCell[0], sigilCell[1]); sigilMesh.position.set(sp.x, 0.9, sp.z);
+  sigilMesh.userData = { taken:false }; world.add(sigilMesh);
+
+  // ---- relics (treasure) ----
+  const relicCount = 3 + Math.floor(floorNum/2);
+  for (let i=0;i<relicCount && cells.length;i++){
+    const c = pick();
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.34), echoMat(0xffcf4d, { emissive:0.5, reach:6 }));
+    m.add(outline(m.geometry, 1.14));
+    const w = cellToWorld(c[0],c[1]); m.position.set(w.x, 0.7, w.z);
+    m.userData = { taken:false }; world.add(m); relics.push(m);
+  }
+
+  // ---- pressure plates: stepping emits a big helpful pulse ----
+  for (let i=0;i<2+Math.floor(floorNum/3) && cells.length;i++){
+    const c = pick();
+    const pl = new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,0.12,18), echoMat(0x8a6bff, { emissive:0.18, reach:5 }));
+    const w = cellToWorld(c[0],c[1]); pl.position.set(w.x, 0.07, w.z);
+    pl.userData = { cell:c, cd:0 }; world.add(pl); plates.push(pl);
+  }
+
+  // ---- enemies ----
+  const enemyCount = 2 + floorNum;
+  for (let i=0;i<enemyCount && cells.length;i++){
+    const c = pick();
+    const g = new THREE.Group();
+    const eb = new THREE.Mesh(new THREE.DodecahedronGeometry(0.5), echoMat(0xff4d6d, { emissive:0.12, reach:5 }));
+    eb.add(outline(eb.geometry, 1.12));
+    g.add(eb);
+    const w = cellToWorld(c[0],c[1]); g.position.set(w.x, 0.6, w.z);
+    g.userData = { cell:c, dir:new THREE.Vector3(), repathCd:0, pingCd:Math.random()*2, panner:makePanner() };
+    world.add(g); enemies.push(g);
+  }
+
+  // sync HUD + initial reveal pulse
+  state.floor = floorNum; state.relicsOnFloor = relics.length;
+  U.uPlayerPos.value.copy(player.position);
+  emitWave(player.position.x, player.position.z, { intensity:1.2, maxR:16, speed:16 });
+  updateHUD();
+}
+
+// =====================================================================
+//  AUDIO (Web Audio, synthesized + spatial enemy pings)
+// =====================================================================
+let AC = null, listener = null, masterGain = null;
+function initAudio(){
+  if (AC) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = AC.createGain(); masterGain.gain.value = 0.5; masterGain.connect(AC.destination);
+  listener = AC.listener;
+}
+function resumeAC(){ if (AC && AC.state === 'suspended') AC.resume(); }
+function makePanner(){
+  if (!AC) return null;
+  const p = AC.createPanner();
+  p.panningModel='HRTF'; p.distanceModel='inverse'; p.refDistance=2; p.maxDistance=40; p.rolloffFactor=1.4;
+  p.connect(masterGain); return p;
+}
+function blip(freq, dur, type='sine', gain=0.3, dest=null){
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(gain, AC.currentTime+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime+dur);
+  o.connect(g); g.connect(dest || masterGain); o.start(); o.stop(AC.currentTime+dur+0.02);
+}
+function noiseBurst(dur, gain=0.4){
+  if (!AC) return;
+  const n = AC.createBufferSource();
+  const buf = AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  n.buffer = buf;
+  const g = AC.createGain(); g.gain.value = gain;
+  const f = AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=900; f.Q.value=0.8;
+  n.connect(f); f.connect(g); g.connect(masterGain); n.start();
+}
+const snd = {
+  step(){ blip(120 + Math.random()*20, 0.12, 'sine', 0.18); },
+  pulse(){ noiseBurst(0.35, 0.45); blip(420, 0.25, 'triangle', 0.15); },
+  relic(){ blip(880,0.10,'square',0.25); blip(1320,0.16,'square',0.22); },
+  sigil(){ blip(660,0.12,'sawtooth',0.25); blip(990,0.18,'sawtooth',0.22); blip(1320,0.22,'sawtooth',0.2); },
+  hurt(){ blip(90,0.3,'sawtooth',0.4); },
+  descend(){ blip(300,0.2,'sine',0.3); blip(450,0.25,'sine',0.28); blip(600,0.3,'sine',0.26); },
+  dead(){ blip(200,0.6,'sawtooth',0.4); blip(100,0.9,'sine',0.4); },
+  enemyPing(panner){ blip(220 + Math.random()*60, 0.22, 'square', 0.6, panner); },
+};
+
+// =====================================================================
+//  STATE / HUD
+// =====================================================================
+const state = { running:false, paused:false, floor:1, loot:0, relicsOnFloor:0,
+                echo:1, echoCd:0, last:0 };
+const ELS = {
+  hp:document.getElementById('hp'), floor:document.getElementById('floor'),
+  loot:document.getElementById('loot'), key:document.getElementById('keyst'),
+  echoFill:document.getElementById('echoFill'),
+};
+function updateHUD(){
+  ELS.hp.textContent = Math.max(0, Math.ceil(player?.userData.hp ?? 0));
+  ELS.floor.textContent = state.floor;
+  ELS.loot.textContent = state.loot;
+  ELS.key.textContent = player?.userData.hasSigil ? 'YES' : '—';
+  ELS.key.style.color = player?.userData.hasSigil ? 'var(--good)' : '#7a8aa0';
+  ELS.echoFill.style.width = (state.echo*100)+'%';
+}
+let toastT = 0;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = 1; toastT = 2.2;
+}
+
+// =====================================================================
+//  INPUT
+// =====================================================================
+const keys = {};
+const joy = { active:false, x:0, y:0 };
+addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ') doPulse();
+  if (e.key === 'Escape') togglePause();
+}, { passive:false });
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// touch capability
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 ||
+                matchMedia('(pointer:coarse)').matches;
+document.body.classList.toggle('no-touch', !isTouch);
+document.body.classList.toggle('touch', isTouch);
+
+// virtual joystick
+const joyEl = document.getElementById('joy'), nub = document.getElementById('nub');
+function joyMove(t){
+  const r = joyEl.getBoundingClientRect();
+  let dx = t.clientX - (r.left + r.width/2);
+  let dy = t.clientY - (r.top + r.height/2);
+  const max = r.width/2, len = Math.hypot(dx,dy) || 1;
+  if (len > max){ dx = dx/len*max; dy = dy/len*max; }
+  joy.x = dx/max; joy.y = dy/max;
+  nub.style.transform = `translate(${dx}px,${dy}px)`;
+}
+joyEl.addEventListener('touchstart', e => { e.preventDefault(); resumeAC(); joy.active=true; joyMove(e.changedTouches[0]); }, {passive:false});
+joyEl.addEventListener('touchmove',  e => { e.preventDefault(); joyMove(e.changedTouches[0]); }, {passive:false});
+const joyEnd = e => { joy.active=false; joy.x=joy.y=0; nub.style.transform='translate(0,0)'; };
+joyEl.addEventListener('touchend', joyEnd); joyEl.addEventListener('touchcancel', joyEnd);
+
+document.getElementById('echoBtn').addEventListener('touchstart', e => { e.preventDefault(); resumeAC(); doPulse(); }, {passive:false});
+
+// mouse aim (desktop): face the cursor
+let mouseAim = null;
+addEventListener('mousemove', e => { mouseAim = { x:e.clientX, y:e.clientY }; });
+
+// suppress mobile zoom gestures
+addEventListener('gesturestart', e => e.preventDefault());
+let lastTouchEnd = 0;
+addEventListener('touchend', e => { const n=Date.now(); if (n-lastTouchEnd<300) e.preventDefault(); lastTouchEnd=n; }, {passive:false});
+
+function doPulse(){
+  if (!state.running || state.paused) return;
+  if (state.echo < 1) return;            // needs full charge
+  state.echo = 0; state.echoCd = 2.5;
+  emitWave(player.position.x, player.position.z, { intensity:1.4, maxR:30, speed:22, thickness:1.8 });
+  snd.pulse();
+}
+
+// =====================================================================
+//  MOVEMENT / COLLISION
+// =====================================================================
+const PLAYER_R = 0.4, PLAYER_SPEED = 6.0;
+function collide(x, z, r){
+  // resolve circle vs nearby wall cells; returns adjusted [x,z]
+  const [cx, cy] = worldToCell(x, z);
+  for (let gy=cy-1; gy<=cy+1; gy++) for (let gx=cx-1; gx<=cx+1; gx++){
+    if (!isWall(gx, gy)) continue;
+    const c = cellToWorld(gx, gy);
+    const half = TILE/2;
+    const nx = Math.max(c.x-half, Math.min(x, c.x+half));
+    const nz = Math.max(c.z-half, Math.min(z, c.z+half));
+    let dx = x-nx, dz = z-nz, d = Math.hypot(dx,dz);
+    if (d < r){
+      if (d < 1e-4){ dx = 1; dz = 0; d = 1; }
+      x = nx + dx/d*r; z = nz + dz/d*r;
+    }
+  }
+  return [x, z];
+}
+
+function movePlayer(dt){
+  let mx = 0, mz = 0;
+  if (keys['w']||keys['arrowup'])   mz -= 1;
+  if (keys['s']||keys['arrowdown']) mz += 1;
+  if (keys['a']||keys['arrowleft']) mx -= 1;
+  if (keys['d']||keys['arrowright'])mx += 1;
+  if (joy.active){ mx += joy.x; mz += joy.y; }
+  const len = Math.hypot(mx,mz);
+  if (len > 1){ mx/=len; mz/=len; }
+
+  if (len > 0.05){
+    let nx = player.position.x + mx*PLAYER_SPEED*dt;
+    let nz = player.position.z + mz*PLAYER_SPEED*dt;
+    [nx, nz] = collide(nx, player.position.z, PLAYER_R);
+    [nx, nz] = collide(nx, nz, PLAYER_R);
+    const dist = Math.hypot(nx-player.position.x, nz-player.position.z);
+    player.position.x = nx; player.position.z = nz;
+    player.userData.facing = Math.atan2(mx, mz);
+
+    // footstep waves keyed to distance travelled
+    player.userData.moved += dist;
+    if (player.userData.moved > 1.5){
+      player.userData.moved = 0;
+      emitWave(player.position.x, player.position.z, { intensity:0.9, maxR:13, speed:13, thickness:1.2 });
+      snd.step();
+    }
+    // pressure plates
+    const [pcx, pcy] = worldToCell(player.position.x, player.position.z);
+    for (const pl of plates){
+      if (pl.userData.cd > 0) continue;
+      if (pl.userData.cell[0]===pcx && pl.userData.cell[1]===pcy){
+        pl.userData.cd = 4;
+        emitWave(player.position.x, player.position.z, { intensity:1.3, maxR:34, speed:26, thickness:2.0 });
+        toast('A resonance plate hums — the room rings out');
+        snd.pulse();
+      }
+    }
+  }
+  player.rotation.y = player.userData.facing;
+}
+
+// =====================================================================
+//  ENEMIES
+// =====================================================================
+const ENEMY_SPEED = 3.0, HEAR_RANGE = 9;
+function updateEnemies(dt){
+  for (const e of enemies){
+    const u = e.userData;
+    const toP = new THREE.Vector3().subVectors(player.position, e.position);
+    const dist = toP.length();
+
+    u.repathCd -= dt;
+    if (dist < HEAR_RANGE){
+      toP.y = 0; u.dir.copy(toP).normalize();          // hunt the player
+    } else if (u.repathCd <= 0){
+      u.repathCd = 1 + Math.random()*1.5;
+      const a = Math.random()*Math.PI*2; u.dir.set(Math.cos(a),0,Math.sin(a)); // wander
+    }
+
+    let nx = e.position.x + u.dir.x*ENEMY_SPEED*dt;
+    let nz = e.position.z + u.dir.z*ENEMY_SPEED*dt;
+    const [cx, cz] = collide(nx, nz, 0.45);
+    if (Math.hypot(cx-e.position.x, cz-e.position.z) < ENEMY_SPEED*dt*0.5) u.repathCd = 0; // stuck → repath
+    e.position.x = cx; e.position.z = cz;
+    e.rotation.y += dt*1.5;
+
+    // periodic ping so they reveal themselves (and you can hear them)
+    u.pingCd -= dt;
+    if (u.pingCd <= 0){
+      u.pingCd = 1.6 + Math.random()*1.4;
+      emitWave(e.position.x, e.position.z, { intensity:0.8, maxR:11, speed:12, thickness:1.1 });
+      if (u.panner){
+        u.panner.positionX.value = e.position.x; u.panner.positionY.value = e.position.y; u.panner.positionZ.value = e.position.z;
+        snd.enemyPing(u.panner);
+      }
+    }
+
+    // contact damage
+    if (dist < 0.95 && player.userData.hurtCd <= 0){
+      player.userData.hp -= 16; player.userData.hurtCd = 1.0;
+      emitWave(player.position.x, player.position.z, { intensity:1.3, maxR:18, speed:18, thickness:1.6 });
+      snd.hurt(); toast('Hit! Integrity failing');
+      if (player.userData.hp <= 0) endGame(false);
+    }
+  }
+}
+
+// =====================================================================
+//  PICKUPS / PROGRESS
+// =====================================================================
+function updatePickups(dt){
+  const t = performance.now()*0.001;
+  // sigil
+  if (sigilMesh && !sigilMesh.userData.taken){
+    sigilMesh.rotation.y += dt*1.6; sigilMesh.position.y = 0.9 + Math.sin(t*2)*0.12;
+    if (player.position.distanceTo(sigilMesh.position) < 1.0){
+      sigilMesh.userData.taken = true; sigilMesh.visible = false;
+      player.userData.hasSigil = true;
+      snd.sigil(); toast('Sigil claimed — the exit portal will accept you');
+      emitWave(player.position.x, player.position.z, { intensity:1.3, maxR:24, speed:20 });
+    }
+  }
+  // relics
+  for (const r of relics){
+    if (r.userData.taken) continue;
+    r.rotation.y += dt*2; r.rotation.x += dt*1.3; r.position.y = 0.7 + Math.sin(t*3+r.id)*0.1;
+    if (player.position.distanceTo(r.position) < 0.9){
+      r.userData.taken = true; r.visible = false; state.loot++;
+      snd.relic(); toast('Relic recovered');
+    }
+  }
+  // exit
+  if (exitMesh){
+    exitMesh.rotation.z += dt*0.8; exitMesh.position.y = 1.0 + Math.sin(t*1.5)*0.1;
+    if (player.position.distanceTo(exitMesh.position) < 1.1){
+      if (player.userData.hasSigil){
+        const hp = player.userData.hp;
+        snd.descend(); toast('Descending…');
+        buildLevel(state.floor + 1);
+        player.userData.hp = Math.min(100, hp + 20); // heal a little between floors
+      } else if (toastT <= 0){
+        toast('The portal is sealed — find the sigil first');
+      }
+    }
+  }
+  // plate cooldowns
+  for (const pl of plates) if (pl.userData.cd > 0) pl.userData.cd -= dt;
+}
+
+// =====================================================================
+//  CAMERA / LOOP
+// =====================================================================
+function updateCamera(dt){
+  const want = new THREE.Vector3().copy(player.position).add(camOffset);
+  camera.position.lerp(want, 1 - Math.pow(0.001, dt));
+  camera.lookAt(player.position.x, player.position.y, player.position.z - 1.5);
+  if (listener){
+    listener.positionX.value = player.position.x;
+    listener.positionY.value = player.position.y;
+    listener.positionZ.value = player.position.z;
+  }
+}
+
+function update(dt){
+  if (player.userData.hurtCd > 0) player.userData.hurtCd -= dt;
+  if (state.echoCd > 0){ state.echoCd -= dt; state.echo = Math.min(1, 1 - state.echoCd/2.5); }
+  else state.echo = 1;
+  if (toastT > 0){ toastT -= dt; if (toastT <= 0) document.getElementById('toast').style.opacity = 0; }
+
+  movePlayer(dt);
+  updateEnemies(dt);
+  updatePickups(dt);
+  updateWaves(dt);
+  updateCamera(dt);
+
+  U.uPlayerPos.value.copy(player.position);
+  U.uTime.value += dt;
+  updateHUD();
+}
+
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (ts - state.last)/1000 || 0); state.last = ts;
+  if (state.running && !state.paused) update(dt);
+  renderer.render(scene, camera);
+}
+
+// =====================================================================
+//  SCREENS / FLOW
+// =====================================================================
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w*RENDER_SCALE, h*RENDER_SCALE, false); // internal buffer at 75%
+  canvas.style.width = w+'px'; canvas.style.height = h+'px'; // CSS upscales
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); addEventListener('orientationchange', resize);
+if (window.visualViewport) visualViewport.addEventListener('resize', resize);
+
+function startGame(){
+  initAudio(); resumeAC();
+  state.running = true; state.paused = false; state.floor = 1; state.loot = 0;
+  state.echo = 1; state.echoCd = 0;
+  buildLevel(1);
+  document.getElementById('start').classList.add('hidden');
+  document.getElementById('end').classList.add('hidden');
+}
+function togglePause(){
+  if (!state.running) return;
+  state.paused = !state.paused;
+  document.getElementById('pause').classList.toggle('hidden', !state.paused);
+}
+function endGame(won){
+  state.running = false;
+  if (won) snd.descend(); else snd.dead();
+  const t = document.getElementById('endTitle'), x = document.getElementById('endText');
+  if (won){ t.textContent = 'YOU ESCAPED'; t.style.color = 'var(--good)'; }
+  else { t.textContent = 'CONSUMED BY THE DARK'; t.style.color = 'var(--bad)'; }
+  x.innerHTML = `Reached depth <b>${state.floor}</b> · recovered <b>${state.loot}</b> relics.`;
+  document.getElementById('end').classList.remove('hidden');
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('againBtn').addEventListener('click', startGame);
+document.getElementById('resumeBtn').addEventListener('click', togglePause);
+['click','keydown','touchstart'].forEach(ev => addEventListener(ev, resumeAC, { once:false }));
+
+// boot
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

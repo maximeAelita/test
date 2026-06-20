@@ -2,7 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NEON TANK — Phase 4</title>
 <style>
 :root{
@@ -20,12 +23,20 @@
 @keyframes bgShift{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 @keyframes titlePulse{0%,100%{text-shadow:0 0 18px currentColor,0 0 40px currentColor;}50%{text-shadow:0 0 28px currentColor,0 0 64px currentColor;}}
+html{height:100%;overscroll-behavior:none;background:var(--bg0);}
 body{
   background:radial-gradient(140% 120% at 50% -10%,#0a1622 0%,var(--bg1) 38%,var(--bg0) 100%);
-  display:flex;flex-direction:column;align-items:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
   font-family:var(--font-ui);font-feature-settings:"tnum";
-  touch-action:none;overflow:hidden;min-height:100vh;
+  touch-action:none;overflow:hidden;
+  position:fixed;inset:0;
+  min-height:100vh;min-height:100dvh;
+  overscroll-behavior:none;
+  -webkit-touch-callout:none;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
+/* On non-touch devices the on-screen movement/fire controls are hidden — desktop uses mouse + keyboard. */
+body.no-touch #joyZone,body.no-touch #actionZone,body.no-touch #btnAmmo{display:none!important;}
 #ui{
   width:100%;max-width:620px;display:flex;justify-content:space-between;align-items:stretch;gap:5px;
   padding:7px 10px;
@@ -149,13 +160,34 @@ const TILE=Math.floor(GS/20);
 const W=TILE*20,H=TILE*20;
 canvas.width=W;canvas.height=H;
 const wr=document.getElementById('wrapper');
-wr.style.width=W+'px';wr.style.height=H+'px';
-document.getElementById('ui').style.maxWidth=W+'px';
-document.getElementById('buffsBar').style.maxWidth=W+'px';
-document.getElementById('upgradeScreen').style.width=W+'px';
-document.getElementById('upgradeScreen').style.height=H+'px';
-document.getElementById('cutsceneScreen').style.width=W+'px';
-document.getElementById('cutsceneScreen').style.height=H+'px';
+// Overlay panels track the wrapper's display size (not a fixed pixel size), so they
+// stay aligned when the canvas is CSS-scaled to fit the screen.
+for(const id of ['upgradeScreen','cutsceneScreen']){const el=document.getElementById(id);el.style.width='100%';el.style.height='100%';}
+
+// Touch-capable device? Show the on-screen controls; otherwise desktop relies on mouse/keyboard.
+const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);
+document.body.classList.toggle('touch',isTouch);
+document.body.classList.toggle('no-touch',!isTouch);
+
+// Fit the fixed-resolution canvas into the current viewport, in either orientation.
+// Internal resolution stays W×H; only the CSS display size changes. All pointer/touch
+// mapping divides by the live offset/bounding size, so input coordinates stay correct.
+function fitStage(){
+  const vw=window.innerWidth;
+  const vh=document.documentElement.clientHeight||window.innerHeight;
+  const uiH=document.getElementById('ui').offsetHeight+document.getElementById('buffsBar').offsetHeight;
+  const availH=Math.max(140,vh-uiH-6);
+  const scale=Math.min(vw/W,availH/H,1);
+  const dw=Math.round(W*scale),dh=Math.round(H*scale);
+  wr.style.width=dw+'px';wr.style.height=dh+'px';
+  canvas.style.width=dw+'px';canvas.style.height=dh+'px';
+  document.getElementById('ui').style.maxWidth=dw+'px';
+  document.getElementById('buffsBar').style.maxWidth=dw+'px';
+}
+fitStage();
+window.addEventListener('resize',fitStage);
+window.addEventListener('orientationchange',()=>setTimeout(fitStage,120));
+if(window.visualViewport)window.visualViewport.addEventListener('resize',fitStage);
 
 const COLS=20,ROWS=20;
 const T_EMPTY=0,T_BRICK=1,T_STEEL=2,T_WATER=3;
@@ -347,7 +379,7 @@ function showCutscene(bossIdx,onDone){
   const def=BOSS_DEFS[bossIdx%8];
   const cs=document.getElementById('cutsceneScreen');
   cs.style.display='flex';cs.innerHTML='';cutsceneActive=true;
-  const cvsEl=document.createElement('canvas');cvsEl.width=W;cvsEl.height=H;cs.appendChild(cvsEl);
+  const cvsEl=document.createElement('canvas');cvsEl.width=W;cvsEl.height=H;cvsEl.style.width='100%';cvsEl.style.height='100%';cvsEl.style.display='block';cs.appendChild(cvsEl);
   const c=cvsEl.getContext('2d');let start=null;
   const lines=[{t:0,text:'WARNING',color:N.red,size:22},{t:0.8,text:def.name,color:def.color,size:20},{t:1.6,text:def.desc,color:'rgba(255,255,255,0.6)',size:11},{t:2.4,text:'PREPARE YOURSELF',color:'rgba(255,255,255,0.3)',size:10}];
   function frame(ts){
@@ -502,7 +534,9 @@ canvas.addEventListener('click',e=>{resumeAC();if(!state.running)return;const r=
 const joyZone=document.getElementById('joyZone'),joyStick=document.getElementById('joyStick'),joyBase=document.getElementById('joyBase'),JR=40;
 joyZone.addEventListener('touchstart',e=>{resumeAC();const t=e.changedTouches[0];const r=joyZone.getBoundingClientRect();joy.active=true;joy.id=t.identifier;joy.startX=t.clientX-r.left;joy.startY=t.clientY-r.top;joy.dx=0;joy.dy=0;joyBase.style.display='block';joyStick.style.display='block';joyBase.style.left=(joy.startX-38)+'px';joyBase.style.top=(joy.startY-38)+'px';joyStick.style.left=(joy.startX-24)+'px';joyStick.style.top=(joy.startY-24)+'px';},{passive:false});
 joyZone.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===joy.id){const r=joyZone.getBoundingClientRect();const dx=t.clientX-r.left-joy.startX,dy=t.clientY-r.top-joy.startY;const dist=Math.hypot(dx,dy),clamp=Math.min(dist,JR),angle=Math.atan2(dy,dx);joy.dx=Math.cos(angle)*clamp/JR;joy.dy=Math.sin(angle)*clamp/JR;joyStick.style.left=(joy.startX+Math.cos(angle)*clamp-24)+'px';joyStick.style.top=(joy.startY+Math.sin(angle)*clamp-24)+'px';}}},{passive:false});
-joyZone.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===joy.id){joy.active=false;joy.dx=0;joy.dy=0;joyStick.style.display='none';joyBase.style.display='none';}}},{passive:false});
+const releaseJoy=()=>{joy.active=false;joy.dx=0;joy.dy=0;joy.id=-1;joyStick.style.display='none';joyBase.style.display='none';};
+joyZone.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===joy.id){releaseJoy();}}},{passive:false});
+joyZone.addEventListener('touchcancel',releaseJoy,{passive:false});
 document.getElementById('btnShoot').addEventListener('touchstart',e=>{e.preventDefault();if(player&&state.running)fireBullet(player,false);},{passive:false});
 document.getElementById('btnSpecial').addEventListener('touchstart',e=>{e.preventDefault();if(player&&state.running)useSpecial();},{passive:false});
 document.getElementById('btnAmmo').addEventListener('touchstart',e=>{e.preventDefault();if(player&&state.running)cycleAmmo();},{passive:false});
@@ -511,8 +545,17 @@ let aimTouch=-1;
 canvas.addEventListener('touchstart',e=>{resumeAC();e.preventDefault();for(const t of e.changedTouches){const r=canvas.getBoundingClientRect();const tx=(t.clientX-r.left)*(W/canvas.offsetWidth),ty=(t.clientY-r.top)*(H/canvas.offsetHeight);if(tx>W*0.4){aimTouch=t.identifier;mouseX=tx;mouseY=ty;if(player&&state.running)fireBullet(player,false);}}},{passive:false});
 canvas.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===aimTouch){const r=canvas.getBoundingClientRect();mouseX=(t.clientX-r.left)*(W/canvas.offsetWidth);mouseY=(t.clientY-r.top)*(H/canvas.offsetHeight);}}},{passive:false});
 canvas.addEventListener('touchend',e=>{for(const t of e.changedTouches){if(t.identifier===aimTouch)aimTouch=-1;}},{passive:false});
+canvas.addEventListener('touchcancel',e=>{for(const t of e.changedTouches){if(t.identifier===aimTouch)aimTouch=-1;}},{passive:false});
 document.getElementById('overlay').addEventListener('click',e=>{resumeAC();startGame();});
 document.getElementById('overlay').addEventListener('touchstart',e=>{e.preventDefault();resumeAC();startGame();},{passive:false});
+
+// Mobile gesture hardening: block iOS pinch-zoom, double-tap zoom, and the long-press
+// callout/context menu so they can't interrupt gameplay.
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('gesturechange',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+let _lastTouchEnd=0;
+document.addEventListener('touchend',e=>{const now=Date.now();if(now-_lastTouchEnd<=300)e.preventDefault();_lastTouchEnd=now;},{passive:false});
 
 function startGame(){
   document.getElementById('overlay').style.display='none';

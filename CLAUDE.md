@@ -34,9 +34,13 @@ mutable module-scoped state (no classes, no modules). The three layers are:
    and `updateBuffs()`; HTML is not data-bound, so changing displayed stats means
    editing those functions.
 2. **The canvas game** drawn into `#gameCanvas`. The play field is a fixed 20×20 tile
-   grid (`COLS`/`ROWS`); `TILE`, `W`, `H` are derived from viewport width at load
-   (mobile is detected via `window.innerWidth<=500`). Sizing is computed once on load —
-   the game does not handle live resize.
+   grid (`COLS`/`ROWS`); `TILE`, `W`, `H` (the canvas's *internal* resolution) are
+   derived from viewport width at load and never change. Display sizing is separate:
+   `fitStage()` sets the CSS size of the canvas/wrapper to fit the current viewport in
+   either orientation, and re-runs on `resize`/`orientationchange`/`visualViewport`
+   resize. Because the internal resolution is fixed, entity coordinates are never
+   rescaled (no desync), and all input maps screen→game via the live
+   `getBoundingClientRect()`/`offsetWidth`, so it stays correct under CSS scaling.
 3. **Web Audio** via a single shared `AudioContext`; all SFX are synthesized inline in
    `snd(type)` (oscillators + a noise buffer for explosions). To add a sound, add a
    branch there and call `snd('yourtype')`.
@@ -99,7 +103,18 @@ Three parallel schemes feed the same state, all wired near the middle of the scr
 keyboard (`keys` map + keydown handlers for special/ammo/pause), mouse (move = aim,
 click = fire), and touch (left-half virtual joystick in `#joyZone`; right-half canvas
 taps aim+fire; on-screen FIRE/SPEC/AMO/pause buttons). Touch handlers use
-`{passive:false}` and `preventDefault()` to suppress scrolling/zoom.
+`{passive:false}` and `preventDefault()` to suppress scrolling/zoom, and have
+`touchcancel` resets so the joystick/aim don't stick when iOS interrupts a touch.
+
+`isTouch` (capability-based: `ontouchstart` / `maxTouchPoints` / `pointer:coarse`)
+toggles a `touch`/`no-touch` class on `<body>`; the on-screen movement/fire controls
+are hidden via CSS on `no-touch` (desktop) and shown on touch devices. Mobile-browser
+behaviors that break a canvas game are suppressed globally: pinch-zoom
+(`gesturestart`/`gesturechange`), double-tap zoom (300 ms `touchend` guard), the
+long-press callout (`contextmenu` + `-webkit-touch-callout`), pull-to-refresh/overscroll
+(`overscroll-behavior:none` + `position:fixed` body), and the notch via
+`viewport-fit=cover` + `env(safe-area-inset-*)` padding. Audio is unlocked on the first
+gesture through `resumeAC()` (iOS starts the `AudioContext` suspended).
 
 ## Conventions
 

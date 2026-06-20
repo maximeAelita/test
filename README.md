@@ -8,6 +8,11 @@ A 3D anime-styled **Puzzle RPG** that you play mostly by ear.
 
 Single self-contained file: [`echo-dungeon.html`](./echo-dungeon.html). No build step.
 
+> **Offline / on-device:** [`echo-dungeon-offline.html`](./echo-dungeon-offline.html) is the
+> same game with Three.js inlined — one file, **no internet required**. Save it and open it
+> in any browser (great for phones/tablets). `echo-dungeon.html` is the slim version that
+> pulls Three.js from a CDN.
+
 ## Play
 
 Open `echo-dungeon.html` in any modern browser, or serve the folder:

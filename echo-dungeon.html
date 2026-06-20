@@ -30,16 +30,16 @@
   #echoFill{ height:100%; width:100%; background:linear-gradient(90deg,#1e90ff,#46e6ff); transition:width .05s linear; }
 
   /* ---------- touch controls ---------- */
-  #joy{ position:absolute; left:max(18px,env(safe-area-inset-left)); bottom:max(22px,env(safe-area-inset-bottom));
-    width:140px; height:140px; border-radius:50%; border:2px solid rgba(70,230,255,.3);
-    background:radial-gradient(circle,rgba(70,230,255,.06),transparent 70%); pointer-events:auto; touch-action:none; }
-  #nub{ position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%;
-    background:rgba(70,230,255,.35); border:1px solid rgba(70,230,255,.6); }
+  #joy{ position:absolute; width:130px; height:130px; margin:-65px 0 0 -65px; border-radius:50%;
+    border:2px solid rgba(70,230,255,.35); background:radial-gradient(circle,rgba(70,230,255,.08),transparent 70%);
+    pointer-events:none; display:none; z-index:4; }
+  #nub{ position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%;
+    background:rgba(70,230,255,.4); border:1px solid rgba(70,230,255,.7); }
   #echoBtn{ position:absolute; right:max(22px,env(safe-area-inset-right)); bottom:max(34px,env(safe-area-inset-bottom));
     width:118px; height:118px; border-radius:50%; pointer-events:auto; touch-action:none;
     border:2px solid rgba(255,207,77,.55); background:radial-gradient(circle,rgba(255,207,77,.18),rgba(255,207,77,.04));
     color:#ffe9a8; font-weight:bold; font-size:15px; letter-spacing:1px; display:flex; align-items:center; justify-content:center; text-align:center; }
-  body.no-touch #joy, body.no-touch #echoBtn{ display:none; }
+  body.no-touch #echoBtn{ display:none; }
 
   /* ---------- overlays ---------- */
   .screen{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -88,6 +88,7 @@
     <div class="keys">
       <kbd>W A S D</kbd> / <kbd>↑ ↓ ← →</kbd> move &nbsp;·&nbsp; <kbd>Space</kbd> echo pulse &nbsp;·&nbsp; <kbd>Esc</kbd> pause
     </div>
+    <div class="keys">📱 Touch: drag the <b>left half</b> of the screen to move · tap the <b>right half</b> (or PULSE) to echo</div>
     <button id="startBtn" class="btn">ENTER</button>
   </div>
 
@@ -500,23 +501,46 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 ||
 document.body.classList.toggle('no-touch', !isTouch);
 document.body.classList.toggle('touch', isTouch);
 
-// virtual joystick
+// unified pointer controls (touch + pen; mouse keeps keyboard). Multitouch-safe.
 const joyEl = document.getElementById('joy'), nub = document.getElementById('nub');
-function joyMove(t){
-  const r = joyEl.getBoundingClientRect();
-  let dx = t.clientX - (r.left + r.width/2);
-  let dy = t.clientY - (r.top + r.height/2);
-  const max = r.width/2, len = Math.hypot(dx,dy) || 1;
-  if (len > max){ dx = dx/len*max; dy = dy/len*max; }
-  joy.x = dx/max; joy.y = dy/max;
+const JOY_MAX = 55;          // px throw of the stick
+let moveId = null, baseX = 0, baseY = 0;   // pointerId driving movement + its origin
+
+function stickShow(x, y){
+  baseX = x; baseY = y;
+  joyEl.style.left = x + 'px'; joyEl.style.top = y + 'px';
+  joyEl.style.display = 'block'; nub.style.transform = 'translate(0,0)';
+}
+function stickHide(){ joyEl.style.display = 'none'; }
+
+function pDown(e){
+  resumeAC();
+  if (e.pointerType === 'mouse') return;          // desktop uses WASD / Space
+  if (!state.running || state.paused) return;
+  if (e.clientX < innerWidth * 0.5){              // left half → move
+    if (moveId !== null) return;
+    moveId = e.pointerId; joy.active = true; joy.x = joy.y = 0;
+    stickShow(e.clientX, e.clientY);
+  } else {                                         // right half → pulse
+    doPulse();
+  }
+}
+function pMove(e){
+  if (e.pointerId !== moveId) return;
+  let dx = e.clientX - baseX, dy = e.clientY - baseY;
+  const len = Math.hypot(dx, dy) || 1;
+  if (len > JOY_MAX){ dx = dx/len*JOY_MAX; dy = dy/len*JOY_MAX; }
+  joy.x = dx/JOY_MAX; joy.y = dy/JOY_MAX;
   nub.style.transform = `translate(${dx}px,${dy}px)`;
 }
-joyEl.addEventListener('touchstart', e => { e.preventDefault(); resumeAC(); joy.active=true; joyMove(e.changedTouches[0]); }, {passive:false});
-joyEl.addEventListener('touchmove',  e => { e.preventDefault(); joyMove(e.changedTouches[0]); }, {passive:false});
-const joyEnd = e => { joy.active=false; joy.x=joy.y=0; nub.style.transform='translate(0,0)'; };
-joyEl.addEventListener('touchend', joyEnd); joyEl.addEventListener('touchcancel', joyEnd);
-
-document.getElementById('echoBtn').addEventListener('touchstart', e => { e.preventDefault(); resumeAC(); doPulse(); }, {passive:false});
+function pUp(e){
+  if (e.pointerId !== moveId) return;
+  moveId = null; joy.active = false; joy.x = joy.y = 0; stickHide();
+}
+addEventListener('pointerdown', pDown,  { passive:true });
+addEventListener('pointermove', pMove,  { passive:true });
+addEventListener('pointerup',   pUp,    { passive:true });
+addEventListener('pointercancel', pUp,  { passive:true });
 
 // mouse aim (desktop): face the cursor
 let mouseAim = null;

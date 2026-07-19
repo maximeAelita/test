@@ -1,3 +1,25 @@
+# Games in this repo
+
+| Game | File | One-liner |
+| --- | --- | --- |
+| **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall |
+| **ECHO DUNGEON** | [`echo-dungeon.html`](./echo-dungeon.html) | 3D anime puzzle RPG played mostly by ear (below) |
+| **NEON TANK** | [`index.html`](./index.html) | Top-down neon arena tank shooter with bosses and upgrades |
+
+## NEON ORBIT
+
+A portrait, one-thumb arcade game built for iPhone (works everywhere). Drift into a
+planet's gravity and you orbit it; **tap to sling off along your tangent**. Gravity
+arcs you back down, so chain slings from planet to planet to climb forever. Grab
+&#9733; stars (+15 each), avoid the magenta **spiked planets**, and don't fall off
+the bottom of the screen. High score persists in `localStorage`.
+
+Open `neon-orbit.html` in any browser — or on iPhone, open it in Safari and use
+**Share → Add to Home Screen** to play it fullscreen like a native app (it ships the
+`apple-mobile-web-app` meta tags, safe-area padding, and zoom/scroll suppression).
+Single self-contained file, zero dependencies. Desktop: click or `Space` to sling,
+`Esc` to pause.
+
 # ECHO DUNGEON
 
 A 3D anime-styled **Puzzle RPG** that you play mostly by ear.

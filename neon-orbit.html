@@ -117,7 +117,10 @@ function baseSpeed(h){return Math.min(560, 320 + h*0.05);} // orbital speed ramp
 // ---- state ----
 let mode='menu'; // menu | play | dead | pause
 let ship, planets, stars, parts, camY, topGenY, startY, heightM, starCt, score, shake, tPrev=0, tapLockUntil=0;
-let best=parseInt(localStorage.getItem(HSKEY)||'0',10)||0;
+// localStorage can throw in sandboxed webviews — the game must still run without it
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+let best=parseInt(lsGet(HSKEY)||'0',10)||0;
 document.getElementById('best').textContent='BEST '+best;
 const bgStars=[]; for(let i=0;i<90;i++)bgStars.push({x:Math.random()*LW,y:Math.random()*LH,z:Math.random()<0.5?0.15:0.35,s:Math.random()*1.6+0.6});
 
@@ -170,7 +173,7 @@ function burst(x,y,col,n){for(let i=0;i<n;i++){const a=rand(0,6.28),s=rand(40,20
 function die(){
   mode='dead'; snd('die'); shake=10; burst(ship.x,ship.y,'#f0f',26); burst(ship.x,ship.y,'#0ff',20);
   score=Math.floor(heightM)+starCt*15;
-  if(score>best){best=score; localStorage.setItem(HSKEY,String(best)); snd('best');
+  if(score>best){best=score; lsSet(HSKEY,String(best)); snd('best');
     document.getElementById('finalBest').innerHTML='<span style="color:#ff0">&#9733; NEW BEST &#9733;</span>';}
   else document.getElementById('finalBest').textContent='BEST '+best;
   document.getElementById('finalScore').innerHTML=score+'&nbsp; <span style="font-size:14px;color:#9df">'+Math.floor(heightM)+'m + '+starCt+'&#9733;</span>';

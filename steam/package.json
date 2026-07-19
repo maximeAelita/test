@@ -1,0 +1,24 @@
+{
+  "name": "neon-orbit",
+  "productName": "NEON ORBIT",
+  "version": "1.1.0",
+  "description": "One-thumb neon arcade climber - orbit, sling, climb forever.",
+  "main": "main.js",
+  "scripts": {
+    "prestart": "node copy-game.js",
+    "start": "electron .",
+    "predist": "node copy-game.js",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.neonorbit.game",
+    "productName": "NEON ORBIT",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "game/**"],
+    "win": { "target": "dir" }
+  }
+}

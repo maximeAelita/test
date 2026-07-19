@@ -13,8 +13,16 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 html,body{width:100%;height:100%;overflow:hidden;background:#05060f;position:fixed;overscroll-behavior:none;touch-action:none;
   font-family:'Courier New',Courier,monospace}
-#wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:
+  radial-gradient(ellipse at 50% 38%,rgba(0,255,255,0.05),transparent 62%),
+  repeating-linear-gradient(0deg,rgba(0,255,255,0.022) 0 1px,transparent 1px 46px),
+  repeating-linear-gradient(90deg,rgba(255,0,255,0.02) 0 1px,transparent 1px 46px)}
+#wrap{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  box-shadow:0 0 70px rgba(0,255,255,.12),0 0 8px rgba(0,255,255,.28)}
 canvas{display:block;background:#05060f;touch-action:none}
+#hint{position:fixed;left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom));text-align:center;
+  font-size:12px;letter-spacing:2px;color:rgba(140,220,255,.45);pointer-events:none;z-index:6}
+body.touch #hint{display:none}
 #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;pointer-events:none;
   padding:calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left));
   font-size:15px;font-weight:bold;letter-spacing:1px;color:#0ff;text-shadow:0 0 8px #0ff}
@@ -36,7 +44,7 @@ canvas{display:block;background:#05060f;touch-action:none}
   <div class="panel" id="menu">
     <h1>NEON<span>ORBIT</span></h1>
     <p>Drift into a planet's pull and you orbit it.<br>
-    <b style="color:#ff0">TAP</b> to sling off along your path.<br>
+    <b style="color:#ff0" id="verb">TAP</b> to sling off along your path.<br>
     Climb forever. Grab <span style="color:#ff0">&#9733;</span> stars.<br>
     <span style="color:#f0f">Spiked planets</span> shred you. Don't fall.</p>
     <div class="tap">TAP TO LAUNCH</div>
@@ -48,16 +56,21 @@ canvas{display:block;background:#05060f;touch-action:none}
     <div class="tap">TAP TO RETRY</div>
   </div>
   <div class="panel" id="pause" style="display:none">
-    <h1>PAUSED</h1><div class="tap">TAP TO RESUME</div>
+    <h1>PAUSED</h1>
+    <p id="pauseKeys" style="display:none">R restart &nbsp;·&nbsp; M sound &nbsp;·&nbsp; F fullscreen</p>
+    <div class="tap">TAP TO RESUME</div>
   </div>
+  <div id="hint">SPACE&nbsp;SLING&nbsp;&nbsp;ESC&nbsp;PAUSE&nbsp;&nbsp;F&nbsp;FULLSCREEN&nbsp;&nbsp;M&nbsp;SOUND&nbsp;&nbsp;&#127918;&nbsp;A&nbsp;/&nbsp;START</div>
 </div>
 <script>
 'use strict';
 // ---- stage: fixed internal resolution, CSS-scaled to viewport (same pattern as NEON TANK) ----
 const LW=480, LH=Math.max(700,Math.min(1000,Math.round(LW*innerHeight/Math.max(1,innerWidth))));
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
-cv.width=LW; cv.height=LH;
+let RS=1; // render scale: CSS scale × devicePixelRatio, so desktop/retina displays get crisp pixels
 function fitStage(){const iw=innerWidth, ih=innerHeight, s=Math.min(iw/LW, ih/LH);
+  RS=s*Math.min(2.5,window.devicePixelRatio||1);
+  cv.width=Math.round(LW*RS); cv.height=Math.round(LH*RS);
   cv.style.width=(LW*s)+'px'; cv.style.height=(LH*s)+'px';}
 fitStage();
 addEventListener('resize',fitStage); addEventListener('orientationchange',fitStage);
@@ -78,7 +91,7 @@ let noiseBuf=null;
 function getNoise(){if(noiseBuf||!AC)return noiseBuf;
   noiseBuf=AC.createBuffer(1,AC.sampleRate*0.4,AC.sampleRate);
   const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; return noiseBuf;}
-function snd(t){if(!AC||AC.state!=='running')return; const n=AC.currentTime;
+function snd(t){if(muted||!AC||AC.state!=='running')return; const n=AC.currentTime;
   if(t==='sling'){const o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';
     o.frequency.setValueAtTime(180,n);o.frequency.exponentialRampToValueAtTime(720,n+.14);
     g.gain.setValueAtTime(.14,n);g.gain.exponentialRampToValueAtTime(.001,n+.18);
@@ -121,6 +134,13 @@ let ship, planets, stars, parts, camY, topGenY, startY, heightM, starCt, score, 
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 let best=parseInt(lsGet(HSKEY)||'0',10)||0;
+let muted=lsGet('neonOrbitMute')==='1';
+const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
+document.body.classList.add(isTouch?'touch':'no-touch');
+if(!isTouch){ // desktop wording
+  for(const el of document.querySelectorAll('.tap'))el.textContent=el.textContent.replace('TAP','CLICK');
+  document.getElementById('verb').textContent='CLICK / SPACE';
+  document.getElementById('pauseKeys').style.display='block';}
 document.getElementById('best').textContent='BEST '+best;
 const bgStars=[]; for(let i=0;i<90;i++)bgStars.push({x:Math.random()*LW,y:Math.random()*LH,z:Math.random()<0.5?0.15:0.35,s:Math.random()*1.6+0.6});
 
@@ -189,11 +209,36 @@ function press(){
     reset(); mode='play'; tapLockUntil=now+180; return;}
   if(mode==='pause'){document.getElementById('pause').style.display='none'; mode='play'; tPrev=0; return;}
   if(mode==='play'&&!ship.fly) sling();}
+function togglePause(){
+  if(mode==='play'){mode='pause';document.getElementById('pause').style.display='flex';}
+  else if(mode==='pause'){document.getElementById('pause').style.display='none';mode='play';tPrev=0;}}
+function toggleFS(){const de=document.documentElement;
+  if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}
+  else if(de.requestFullscreen)de.requestFullscreen();
+  else if(de.webkitRequestFullscreen)de.webkitRequestFullscreen();}
+function toggleMute(){muted=!muted;lsSet('neonOrbitMute',muted?'1':'0');if(!muted){resumeAC();snd('latch');}}
 addEventListener('pointerdown',e=>{e.preventDefault(); press();},{passive:false});
-addEventListener('keydown',e=>{if(e.code==='Space'){e.preventDefault(); press();}
-  else if(e.code==='Escape'&&mode==='play'){mode='pause';document.getElementById('pause').style.display='flex';}});
+addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault(); press();}
+  else if(e.code==='Escape')togglePause();
+  else if(e.code==='KeyF')toggleFS();
+  else if(e.code==='KeyM')toggleMute();
+  else if(e.code==='KeyR'&&(mode==='play'||mode==='pause'||mode==='dead')){
+    document.getElementById('pause').style.display='none';
+    document.getElementById('dead').style.display='none';
+    reset(); mode='play'; tPrev=0;}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play'){
   mode='pause';document.getElementById('pause').style.display='flex';}});
+// gamepad (Steam Deck / controllers): A slings or confirms, Start pauses
+let padA=false,padS=false;
+function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
+  for(const gp of gps){if(!gp)continue;
+    const a=!!(gp.buttons[0]&&gp.buttons[0].pressed);
+    const s=!!(gp.buttons[9]&&gp.buttons[9].pressed);
+    if(a&&!padA)press();
+    if(s&&!padS)togglePause();
+    padA=a; padS=s; return;}
+  padA=padS=false;}
 
 // ---- update ----
 function update(dt){
@@ -250,7 +295,7 @@ function update(dt){
 
 // ---- draw ----
 function draw(){
-  ctx.setTransform(1,0,0,1,0,0);
+  ctx.setTransform(RS,0,0,RS,0,0);
   ctx.fillStyle='#05060f'; ctx.fillRect(0,0,LW,LH);
   const sx=shake?rand(-shake,shake):0, sy=shake?rand(-shake,shake):0;
   // parallax starfield (screen-space, scrolls with camera)
@@ -326,6 +371,7 @@ function draw(){
 // ---- loop ----
 function loop(ts){
   requestAnimationFrame(loop);
+  pollPad();
   if(!tPrev)tPrev=ts;
   let dt=(ts-tPrev)/1000; tPrev=ts;
   if(dt>0.05)dt=0.05;

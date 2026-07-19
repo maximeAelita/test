@@ -17,8 +17,13 @@ the bottom of the screen. High score persists in `localStorage`.
 Open `neon-orbit.html` in any browser — or on iPhone, open it in Safari and use
 **Share → Add to Home Screen** to play it fullscreen like a native app (it ships the
 `apple-mobile-web-app` meta tags, safe-area padding, and zoom/scroll suppression).
-Single self-contained file, zero dependencies. Desktop: click or `Space` to sling,
-`Esc` to pause.
+Single self-contained file, zero dependencies.
+
+**On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
+widescreen presentation, and gamepad support (A = sling, Start = pause — Steam
+Deck friendly). Keys: click/`Space` sling · `Esc` pause · `R` restart ·
+`M` sound · `F` fullscreen. The [`steam/`](./steam) folder wraps the game in
+Electron with a build + Steamworks checklist for shipping it on Steam.
 
 # ECHO DUNGEON
 

@@ -14,3 +14,7 @@ _book
 *.epub
 *.mobi
 *.pdf
+
+# Steam/Electron build products
+steam/dist
+steam/game

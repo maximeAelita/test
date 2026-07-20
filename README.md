@@ -1,3 +1,38 @@
+# Games in this repo
+
+| Game | File | One-liner |
+| --- | --- | --- |
+| **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall |
+| **ECHO DUNGEON** | [`echo-dungeon.html`](./echo-dungeon.html) | 3D anime puzzle RPG played mostly by ear (below) |
+| **NEON TANK** | [`index.html`](./index.html) | Top-down neon arena tank shooter with bosses and upgrades |
+
+## NEON ORBIT
+
+A portrait, one-thumb arcade game built for iPhone (works everywhere). Drift into a
+planet's gravity and you orbit it; **tap to sling off along your tangent**. Gravity
+arcs you back down, so chain slings from planet to planet to climb forever. Grab
+&#9733; stars (+15 each) and don't fall off the bottom of the screen.
+
+Hazards ramp with altitude: magenta **spiked planets** can't be latched and kill on
+contact; **black holes** (violet) bend your flight arc and shred you at the core;
+amber **decay planets** shrink your orbit toward the surface — sling off before it
+crushes you. Latching fresh planets back-to-back without bouncing builds a
+**chain combo** worth escalating bonus points. Ten local **trophies** (height
+milestones, chain lengths, a black-hole graze, a last-instant decay escape) unlock
+with a toast and persist in `localStorage`, alongside the high score — they map
+1:1 onto Steam achievements for the desktop build.
+
+Open `neon-orbit.html` in any browser — or on iPhone, open it in Safari and use
+**Share → Add to Home Screen** to play it fullscreen like a native app (it ships the
+`apple-mobile-web-app` meta tags, safe-area padding, and zoom/scroll suppression).
+Single self-contained file, zero dependencies.
+
+**On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
+widescreen presentation, and gamepad support (A = sling, Start = pause — Steam
+Deck friendly). Keys: click/`Space` sling · `Esc` pause · `R` restart ·
+`M` sound · `F` fullscreen. The [`steam/`](./steam) folder wraps the game in
+Electron with a build + Steamworks checklist for shipping it on Steam.
+
 # ECHO DUNGEON
 
 A 3D anime-styled **Puzzle RPG** that you play mostly by ear.

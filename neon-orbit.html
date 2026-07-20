@@ -27,6 +27,12 @@ body.touch #hint{display:none}
   padding:calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left));
   font-size:15px;font-weight:bold;letter-spacing:1px;color:#0ff;text-shadow:0 0 8px #0ff}
 #hud .best{color:#f0f;text-shadow:0 0 8px #f0f}
+#combo{color:#ff0;text-shadow:0 0 8px #ff0}
+#toast{position:fixed;top:calc(48px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-18px);
+  background:rgba(5,6,15,.88);border:1px solid #ff0;color:#ff0;text-shadow:0 0 8px #ff0;
+  padding:7px 16px;font-size:13px;font-weight:bold;letter-spacing:2px;white-space:nowrap;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;z-index:8}
+#toast.show{opacity:1;transform:translate(-50%,0)}
 .panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   background:rgba(5,6,15,.72);color:#cff;z-index:5}
 .panel h1{font-size:34px;letter-spacing:5px;color:#0ff;text-shadow:0 0 12px #0ff,0 0 30px #0ff;margin-bottom:6px}
@@ -40,19 +46,25 @@ body.touch #hint{display:none}
 <body>
 <div id="wrap">
   <canvas id="c"></canvas>
-  <div id="hud"><div id="score">0m</div><div class="best" id="best">BEST 0</div></div>
+  <div id="hud"><div id="score">0m</div><div id="combo"></div><div class="best" id="best">BEST 0</div></div>
+  <div id="toast"></div>
   <div class="panel" id="menu">
     <h1>NEON<span>ORBIT</span></h1>
     <p>Drift into a planet's pull and you orbit it.<br>
     <b style="color:#ff0" id="verb">TAP</b> to sling off along your path.<br>
     Climb forever. Grab <span style="color:#ff0">&#9733;</span> stars.<br>
-    <span style="color:#f0f">Spiked planets</span> shred you. Don't fall.</p>
+    <span style="color:#f0f">Spiked planets</span> shred you. Don't fall.<br>
+    <span style="color:#b070ff">Black holes</span> bend your arc.
+    <span style="color:#fa0">Amber orbits</span> decay &mdash; leave fast.<br>
+    Chain fresh planets without bouncing for <span style="color:#ff0">combo</span> points.</p>
     <div class="tap">TAP TO LAUNCH</div>
+    <p id="menuAch" style="margin-top:16px;font-size:12px;color:#8cf;letter-spacing:2px"></p>
   </div>
   <div class="panel" id="dead" style="display:none">
     <h1>WRECKED</h1>
     <p class="big" id="finalScore">0</p>
     <p id="finalBest">BEST 0</p>
+    <p id="deadAch" style="color:#ff0;font-size:12px;letter-spacing:1px;margin-top:8px"></p>
     <div class="tap">TAP TO RETRY</div>
   </div>
   <div class="panel" id="pause" style="display:none">
@@ -91,7 +103,7 @@ let noiseBuf=null;
 function getNoise(){if(noiseBuf||!AC)return noiseBuf;
   noiseBuf=AC.createBuffer(1,AC.sampleRate*0.4,AC.sampleRate);
   const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1; return noiseBuf;}
-function snd(t){if(muted||!AC||AC.state!=='running')return; const n=AC.currentTime;
+function snd(t,x2){if(muted||!AC||AC.state!=='running')return; const n=AC.currentTime;
   if(t==='sling'){const o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';
     o.frequency.setValueAtTime(180,n);o.frequency.exponentialRampToValueAtTime(720,n+.14);
     g.gain.setValueAtTime(.14,n);g.gain.exponentialRampToValueAtTime(.001,n+.18);
@@ -117,7 +129,14 @@ function snd(t){if(muted||!AC||AC.state!=='running')return; const n=AC.currentTi
     o.connect(g2).connect(AC.destination);o.start(n);o.stop(n+.42);}
   else if(t==='best'){[523,659,784,1047].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='square';
     o.frequency.value=f;g.gain.setValueAtTime(.08,n+i*.09);g.gain.exponentialRampToValueAtTime(.001,n+i*.09+.16);
-    o.connect(g).connect(AC.destination);o.start(n+i*.09);o.stop(n+i*.09+.17);});}}
+    o.connect(g).connect(AC.destination);o.start(n+i*.09);o.stop(n+i*.09+.17);});}
+  else if(t==='combo'){const o=AC.createOscillator(),g=AC.createGain();o.type='square';
+    o.frequency.setValueAtTime(300*Math.pow(1.13,Math.min(14,x2||2)),n);
+    g.gain.setValueAtTime(.09,n);g.gain.exponentialRampToValueAtTime(.001,n+.14);
+    o.connect(g).connect(AC.destination);o.start(n);o.stop(n+.15);}
+  else if(t==='ach'){[660,880,1320].forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';
+    o.frequency.value=f;g.gain.setValueAtTime(.1,n+i*.07);g.gain.exponentialRampToValueAtTime(.001,n+i*.07+.18);
+    o.connect(g).connect(AC.destination);o.start(n+i*.07);o.stop(n+i*.07+.19);});}}
 
 // ---- tuning ----
 const G=310;                // gravity while flying (px/s^2)
@@ -130,6 +149,7 @@ function baseSpeed(h){return Math.min(560, 320 + h*0.05);} // orbital speed ramp
 // ---- state ----
 let mode='menu'; // menu | play | dead | pause
 let ship, planets, stars, parts, camY, topGenY, startY, heightM, starCt, score, shake, tPrev=0, tapLockUntil=0;
+let combo=0, bonusPts=0, texts=[], holes=[], runAch=[];
 // localStorage can throw in sandboxed webviews — the game must still run without it
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
@@ -141,32 +161,58 @@ if(!isTouch){ // desktop wording
   for(const el of document.querySelectorAll('.tap'))el.textContent=el.textContent.replace('TAP','CLICK');
   document.getElementById('verb').textContent='CLICK / SPACE';
   document.getElementById('pauseKeys').style.display='block';}
+
+// ---- achievements: persisted locally; maps 1:1 onto Steam achievements later ----
+const ACHS=[
+  ['liftoff','LIFTOFF'],['h100','100M CLUB'],['h250','QUARTER K'],['h500','HALF K'],
+  ['h1000','KILOMETER'],['chain5','CHAIN ×5'],['chain10','CHAIN ×10'],
+  ['stars12','STAR HOARDER'],['graze','EVENT HORIZON'],['spiral','TIGHT SPIRAL']];
+let achSet=new Set(JSON.parse(lsGet('neonOrbitAch1')||'[]'));
+let toastQ=[],toastBusy=false;
+function toast(html){toastQ.push(html);if(!toastBusy)nextToast();}
+function nextToast(){const t=document.getElementById('toast');
+  if(!toastQ.length){toastBusy=false;t.classList.remove('show');return;}
+  toastBusy=true;t.innerHTML=toastQ.shift();t.classList.add('show');
+  setTimeout(()=>{t.classList.remove('show');setTimeout(nextToast,260);},1800);}
+function updAchUI(){document.getElementById('menuAch').textContent='TROPHIES '+achSet.size+' / '+ACHS.length;}
+function unlock(id){if(achSet.has(id))return;achSet.add(id);
+  lsSet('neonOrbitAch1',JSON.stringify([...achSet]));
+  const a=ACHS.find(a=>a[0]===id); runAch.push(a[1]);
+  toast('&#127942; '+a[1]); snd('ach'); updAchUI();}
+function addText(x,y,txt,col){texts.push({x,y,txt,col,t:0});}
+updAchUI();
 document.getElementById('best').textContent='BEST '+best;
 const bgStars=[]; for(let i=0;i<90;i++)bgStars.push({x:Math.random()*LW,y:Math.random()*LH,z:Math.random()<0.5?0.15:0.35,s:Math.random()*1.6+0.6});
 
 const rand=(a,b)=>a+Math.random()*(b-a);
-const HUES=[190,150,255,210,25,45];  // no magenta: that's reserved for spiked hazards
+const HUES=[190,150,255,210];  // cyan/green/violet/blue; amber=decay, magenta=spikes, yellow=stars
 
-function makePlanet(x,y,spiked){
+function makePlanet(x,y,spiked,decay){
   const r=rand(22,42);
-  const mov=(!spiked && Math.random()<Math.min(0.4,heightM/700)) ? {amp:rand(35,80),spd:rand(0.6,1.3),ph:rand(0,6.28)} : null;
-  return {x,y,bx:x,r,spiked,mov,vx:0,px:x,hue:spiked?310:HUES[(Math.random()*HUES.length)|0]};}
+  const mov=(!spiked&&!decay && Math.random()<Math.min(0.4,heightM/700)) ? {amp:rand(35,80),spd:rand(0.6,1.3),ph:rand(0,6.28)} : null;
+  return {x,y,bx:x,r,spiked,decay:!!decay,mov,vx:0,px:x,hue:spiked?310:decay?38:HUES[(Math.random()*HUES.length)|0]};}
 
 let genX=LW/2;
 function genUpTo(limitY){
   while(topGenY>limitY){
     const gap=rand(108,168); topGenY-=gap;
     const x=genX=Math.min(LW-64,Math.max(64,genX+rand(-165,165)));
-    const pSpike=Math.min(0.34, 0.05+heightM/900);
-    const spiked=heightM>40 && Math.random()<pSpike;
-    const p=makePlanet(x,topGenY,spiked); planets.push(p);
+    const roll=Math.random();
+    const pSpike=heightM>40?Math.min(0.3,0.05+heightM/900):0;
+    const pDecay=heightM>60?Math.min(0.24,0.05+heightM/1100):0;
+    const spiked=roll<pSpike, decay=!spiked&&roll<pSpike+pDecay;
+    const p=makePlanet(x,topGenY,spiked,decay); planets.push(p);
+    if(heightM>120&&Math.random()<Math.min(0.3,0.1+(heightM-120)/1600)){
+      const hx=Math.min(LW-40,Math.max(40,x+(Math.random()<0.5?-1:1)*rand(115,195)));
+      holes.push({x:hx,y:topGenY+gap*0.45,ph:rand(0,6.28)});}
     if(Math.random()<0.62){const a=rand(0,6.28),d=p.r+rand(38,86);
       stars.push({x:Math.min(LW-14,Math.max(14,p.x+Math.cos(a)*d)),y:p.y+Math.sin(a)*d,ph:rand(0,6.28)});}
   }}
 
 function reset(){
-  ship={x:LW/2,y:-60,vx:0,vy:0,fly:false,p:null,orbR:0,ang:-Math.PI/2,angV:0,lastP:null,relT:0,trail:[]};
-  planets=[]; stars=[]; parts=[]; shake=0; starCt=0; heightM=0; score=0;
+  ship={x:LW/2,y:-60,vx:0,vy:0,fly:false,p:null,orbR:0,ang:-Math.PI/2,angV:0,lastP:null,relT:0,trail:[],grazedBH:false};
+  planets=[]; stars=[]; parts=[]; holes=[]; texts=[]; runAch=[];
+  shake=0; starCt=0; heightM=0; score=0; combo=0; bonusPts=0;
   startY=ship.y; camY=ship.y-LH*0.62; topGenY=0; genX=LW/2;
   const p0=makePlanet(LW/2,0,false); p0.r=34; planets.push(p0);
   latch(p0); ship.angV=baseSpeed(0)/ship.orbR;   // start already in orbit
@@ -174,6 +220,11 @@ function reset(){
 
 function latch(p){
   const dx=ship.x-p.x, dy=ship.y-p.y, d=Math.hypot(dx,dy)||1;
+  if(ship.lastP&&p!==ship.lastP){combo++;
+    if(combo>=2){bonusPts+=(combo-1)*10;addText(ship.x,ship.y-16,'CHAIN ×'+combo,'#ff0');snd('combo',combo);}
+    if(combo>=5)unlock('chain5'); if(combo>=10)unlock('chain10');}
+  else if(p===ship.lastP)combo=0;
+  if(ship.grazedBH){unlock('graze');ship.grazedBH=false;}
   ship.fly=false; ship.p=p; ship.orbR=Math.min(p.r+ORB_MAX,Math.max(p.r+ORB_MIN,d));
   ship.orbTarget=p.r+28;  // orbit spirals in toward a tight radius after latching
   ship.ang=Math.atan2(dy,dx);
@@ -182,6 +233,8 @@ function latch(p){
 
 function sling(){
   const p=ship.p;
+  unlock('liftoff');
+  if(p.decay&&ship.orbR<p.r+14)unlock('spiral');
   ship.vx=-Math.sin(ship.ang)*ship.angV*ship.orbR*BOOST+(p.vx||0);
   ship.vy= Math.cos(ship.ang)*ship.angV*ship.orbR*BOOST;
   ship.fly=true; ship.lastP=p; ship.relT=0; ship.p=null;
@@ -192,11 +245,12 @@ function burst(x,y,col,n){for(let i=0;i<n;i++){const a=rand(0,6.28),s=rand(40,20
 
 function die(){
   mode='dead'; snd('die'); shake=10; burst(ship.x,ship.y,'#f0f',26); burst(ship.x,ship.y,'#0ff',20);
-  score=Math.floor(heightM)+starCt*15;
+  score=Math.floor(heightM)+starCt*15+bonusPts;
   if(score>best){best=score; lsSet(HSKEY,String(best)); snd('best');
     document.getElementById('finalBest').innerHTML='<span style="color:#ff0">&#9733; NEW BEST &#9733;</span>';}
   else document.getElementById('finalBest').textContent='BEST '+best;
-  document.getElementById('finalScore').innerHTML=score+'&nbsp; <span style="font-size:14px;color:#9df">'+Math.floor(heightM)+'m + '+starCt+'&#9733;</span>';
+  document.getElementById('finalScore').innerHTML=score+'&nbsp; <span style="font-size:14px;color:#9df">'+Math.floor(heightM)+'m + '+starCt+'&#9733; + '+bonusPts+' chain</span>';
+  document.getElementById('deadAch').innerHTML=runAch.length?'UNLOCKED: '+runAch.join(' &middot; '):'';
   document.getElementById('best').textContent='BEST '+best;
   setTimeout(()=>{document.getElementById('dead').style.display='flex'; tapLockUntil=performance.now()+400;},420);}
 
@@ -250,9 +304,14 @@ function update(dt){
   if(ship.fly){
     ship.relT+=dt;
     ship.vy+=G*dt; if(ship.vy>700)ship.vy=700;
+    for(const h of holes){const dx=h.x-ship.x,dy=h.y-ship.y,d=Math.hypot(dx,dy)||1;
+      if(d<16){die();return;}
+      if(d<210){const a=Math.min(950,5.2e6/(d*d));
+        ship.vx+=dx/d*a*dt; ship.vy+=dy/d*a*dt;
+        if(d<60)ship.grazedBH=true;}}
     ship.x+=ship.vx*dt; ship.y+=ship.vy*dt;
-    if(ship.x<8){ship.x=8;ship.vx=Math.abs(ship.vx)*0.9;snd('bounce');}
-    if(ship.x>LW-8){ship.x=LW-8;ship.vx=-Math.abs(ship.vx)*0.9;snd('bounce');}
+    if(ship.x<8){ship.x=8;ship.vx=Math.abs(ship.vx)*0.9;combo=0;snd('bounce');}
+    if(ship.x>LW-8){ship.x=LW-8;ship.vx=-Math.abs(ship.vx)*0.9;combo=0;snd('bounce');}
     // collisions & auto-latch
     for(const p of planets){
       const d=Math.hypot(ship.x-p.x,ship.y-p.y);
@@ -260,11 +319,13 @@ function update(dt){
       if(d<p.r+6){ // smacked the surface: soft bounce off
         const nx=(ship.x-p.x)/d, ny=(ship.y-p.y)/d, dot=ship.vx*nx+ship.vy*ny;
         ship.vx=(ship.vx-2*dot*nx)*0.55; ship.vy=(ship.vy-2*dot*ny)*0.55;
-        ship.x=p.x+nx*(p.r+7); ship.y=p.y+ny*(p.r+7); snd('bounce'); shake=Math.max(shake,2); continue;}
+        ship.x=p.x+nx*(p.r+7); ship.y=p.y+ny*(p.r+7); combo=0; snd('bounce'); shake=Math.max(shake,2); continue;}
       if(d<p.r+LATCH_R && !(p===ship.lastP&&ship.relT<1.35)){latch(p);break;}}
   }else{
     const p=ship.p, dir=ship.angV>=0?1:-1;
-    ship.orbR+=(ship.orbTarget-ship.orbR)*Math.min(1,dt*1.6);
+    if(p.decay){ship.orbR=Math.max(p.r+2,ship.orbR-14*dt); ship.orbTarget=ship.orbR;
+      if(ship.orbR<=p.r+9){die();return;}}
+    else ship.orbR+=(ship.orbTarget-ship.orbR)*Math.min(1,dt*1.6);
     ship.angV=dir*baseSpeed(heightM)/ship.orbR;
     ship.ang+=ship.angV*dt;
     ship.x=p.x+Math.cos(ship.ang)*ship.orbR;
@@ -275,7 +336,9 @@ function update(dt){
   for(const q of ship.trail)q.t+=dt;
   while(ship.trail.length&&ship.trail[0].t>0.35)ship.trail.shift();
   // stars
-  for(const s of stars){if(!s.got&&Math.hypot(ship.x-s.x,ship.y-s.y)<24){s.got=true;starCt++;snd('star');burst(s.x,s.y,'#ff0',10);}}
+  for(const s of stars){if(!s.got&&Math.hypot(ship.x-s.x,ship.y-s.y)<24){s.got=true;starCt++;
+    addText(s.x,s.y-12,'+15','#ff0');snd('star');burst(s.x,s.y,'#ff0',10);
+    if(starCt>=12)unlock('stars12');}}
   // camera climbs, never descends
   const target=ship.y-LH*0.58;
   if(target<camY)camY+=(target-camY)*Math.min(1,dt*6);
@@ -283,14 +346,20 @@ function update(dt){
   genUpTo(camY-300);
   planets=planets.filter(p=>p.y<camY+LH+240);
   stars=stars.filter(s=>!s.got&&s.y<camY+LH+240);
+  holes=holes.filter(h=>h.y<camY+LH+240);
   // fell off the bottom
   if(ship.y>camY+LH+50){die();return;}
   // particles
   for(const q of parts){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=0.98;q.vy*=0.98;}
   parts=parts.filter(q=>q.t<q.life);
   if(shake>0)shake=Math.max(0,shake-dt*22);
-  score=Math.floor(heightM)+starCt*15;
+  for(const q of texts){q.t+=dt;q.y-=28*dt;}
+  texts=texts.filter(q=>q.t<0.9);
+  if(heightM>=100)unlock('h100'); if(heightM>=250)unlock('h250');
+  if(heightM>=500)unlock('h500'); if(heightM>=1000)unlock('h1000');
+  score=Math.floor(heightM)+starCt*15+bonusPts;
   document.getElementById('score').textContent=score+' · '+Math.floor(heightM)+'m';
+  document.getElementById('combo').textContent=combo>=2?'CHAIN ×'+combo:'';
 }
 
 // ---- draw ----
@@ -319,14 +388,27 @@ function draw(){
     }else{
       const col='hsl('+p.hue+',100%,60%)';
       ctx.strokeStyle=col; ctx.shadowColor=col; ctx.shadowBlur=16; ctx.lineWidth=2.5;
+      if(p.decay)ctx.setLineDash([7,5]);
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.2832); ctx.stroke();
+      ctx.setLineDash([]);
       ctx.fillStyle='hsla('+p.hue+',100%,55%,0.10)'; ctx.fill();
       ctx.shadowBlur=0; ctx.strokeStyle='hsla('+p.hue+',100%,70%,0.35)';
       ctx.beginPath(); ctx.arc(p.x,p.y,p.r*0.55,0,6.2832); ctx.stroke();
     }
     ctx.restore();}
-  // stars (pickups)
+  // black holes
   const tNow=performance.now()/1000;
+  for(const h of holes){
+    if(h.y<camY-80||h.y>camY+LH+80)continue;
+    ctx.save();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(h.x,h.y,13,0,6.2832); ctx.fill();
+    ctx.strokeStyle='#b070ff'; ctx.shadowColor='#b070ff'; ctx.shadowBlur=18; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(h.x,h.y,15,0,6.2832); ctx.stroke();
+    ctx.globalAlpha=0.55;
+    ctx.beginPath(); ctx.arc(h.x,h.y,24,tNow*1.7+h.ph,tNow*1.7+h.ph+2.3); ctx.stroke();
+    ctx.beginPath(); ctx.arc(h.x,h.y,33,-tNow*1.1+h.ph,-tNow*1.1+h.ph+1.9); ctx.stroke();
+    ctx.restore();}
+  // stars (pickups)
   for(const s of stars){
     if(s.y<camY-40||s.y>camY+LH+40)continue;
     const tw=0.75+Math.sin(tNow*5+s.ph)*0.25;
@@ -339,7 +421,7 @@ function draw(){
   if(mode==='play'||mode==='pause'||mode==='dead'){
     // orbit ring + aim preview while latched
     if(!ship.fly&&ship.p&&mode!=='dead'){
-      ctx.save(); ctx.strokeStyle='rgba(0,255,255,0.28)'; ctx.setLineDash([4,7]); ctx.lineWidth=1.5;
+      ctx.save(); ctx.strokeStyle=ship.p.decay?'rgba(255,140,0,0.6)':'rgba(0,255,255,0.28)'; ctx.setLineDash([4,7]); ctx.lineWidth=1.5;
       ctx.beginPath(); ctx.arc(ship.p.x,ship.p.y,ship.orbR,0,6.2832); ctx.stroke();
       const tx=-Math.sin(ship.ang)*(ship.angV>=0?1:-1), ty=Math.cos(ship.ang)*(ship.angV>=0?1:-1);
       ctx.strokeStyle='rgba(255,255,0,0.5)'; ctx.setLineDash([3,8]); ctx.lineWidth=2;
@@ -365,7 +447,12 @@ function draw(){
   // particles
   for(const q of parts){const a=1-q.t/q.life;
     ctx.globalAlpha=a; ctx.fillStyle=q.col; ctx.fillRect(q.x-2,q.y-2,4,4);}
-  ctx.globalAlpha=1;
+  // floating score text
+  ctx.font='bold 15px Courier New,monospace'; ctx.textAlign='center';
+  for(const q of texts){const a=Math.max(0,1-q.t/0.9);
+    ctx.globalAlpha=a; ctx.fillStyle=q.col; ctx.shadowColor=q.col; ctx.shadowBlur=10;
+    ctx.fillText(q.txt,q.x,q.y);}
+  ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.textAlign='left';
 }
 
 // ---- loop ----
@@ -377,7 +464,9 @@ function loop(ts){
   if(dt>0.05)dt=0.05;
   if(mode==='play')update(dt);
   else if(mode==='dead'){for(const q of parts){q.t+=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;}
-    parts=parts.filter(q=>q.t<q.life); if(shake>0)shake=Math.max(0,shake-dt*22);}
+    parts=parts.filter(q=>q.t<q.life);
+    for(const q of texts){q.t+=dt;q.y-=28*dt;} texts=texts.filter(q=>q.t<0.9);
+    if(shake>0)shake=Math.max(0,shake-dt*22);}
   draw();
 }
 reset(); mode='menu';

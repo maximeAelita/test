@@ -11,8 +11,16 @@
 A portrait, one-thumb arcade game built for iPhone (works everywhere). Drift into a
 planet's gravity and you orbit it; **tap to sling off along your tangent**. Gravity
 arcs you back down, so chain slings from planet to planet to climb forever. Grab
-&#9733; stars (+15 each), avoid the magenta **spiked planets**, and don't fall off
-the bottom of the screen. High score persists in `localStorage`.
+&#9733; stars (+15 each) and don't fall off the bottom of the screen.
+
+Hazards ramp with altitude: magenta **spiked planets** can't be latched and kill on
+contact; **black holes** (violet) bend your flight arc and shred you at the core;
+amber **decay planets** shrink your orbit toward the surface — sling off before it
+crushes you. Latching fresh planets back-to-back without bouncing builds a
+**chain combo** worth escalating bonus points. Ten local **trophies** (height
+milestones, chain lengths, a black-hole graze, a last-instant decay escape) unlock
+with a toast and persist in `localStorage`, alongside the high score — they map
+1:1 onto Steam achievements for the desktop build.
 
 Open `neon-orbit.html` in any browser — or on iPhone, open it in Safari and use
 **Share → Add to Home Screen** to play it fullscreen like a native app (it ships the

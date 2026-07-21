@@ -1,10 +1,12 @@
 # Games in this repo
 
+The site root (`index.html`) redirects to **NEON ORBIT**, the default game.
+
 | Game | File | One-liner |
 | --- | --- | --- |
-| **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall |
+| **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall (default at the site root) |
 | **ECHO DUNGEON** | [`echo-dungeon.html`](./echo-dungeon.html) | 3D anime puzzle RPG played mostly by ear (below) |
-| **NEON TANK** | [`index.html`](./index.html) | Top-down neon arena tank shooter with bosses and upgrades |
+| **NEON TANK** | [`neon-tank.html`](./neon-tank.html) | Top-down neon arena tank shooter with bosses and upgrades |
 
 ## NEON ORBIT
 

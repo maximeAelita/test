@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository is a single-file browser game: **NEON TANK** (Phase 4), a top-down
 arena tank shooter with a neon aesthetic. The entire game — markup, CSS, and game
-logic — lives in `index.html`. There is no build system, no package manager, no
+logic — lives in `neon-tank.html`. There is no build system, no package manager, no
 dependencies, and no test suite.
 
 ## Running / Developing
 
-- **Run it:** open `index.html` directly in a browser, or serve the directory
+- **Run it:** open `neon-tank.html` directly in a browser, or serve the directory
   (e.g. `python3 -m http.server`) and load it. There is nothing to compile or install.
 - **No build, lint, or test commands exist.** Don't add tooling (npm, bundlers,
   frameworks) unless explicitly asked — the project is intentionally a single
@@ -27,7 +27,7 @@ dependencies, and no test suite.
 Everything is plain DOM + Canvas 2D + Web Audio, written as top-level functions and
 mutable module-scoped state (no classes, no modules). The three layers are:
 
-1. **DOM/CSS overlays** (top of `index.html`): the HUD (`#ui`), buff bar, on-screen
+1. **DOM/CSS overlays** (top of `neon-tank.html`): the HUD (`#ui`), buff bar, on-screen
    touch controls (`#joyZone`, `#actionZone`), and full-screen panels that are toggled
    via `style.display` — `#overlay` (start/game-over), `#upgradeScreen`, `#pauseScreen`,
    `#cutsceneScreen`, `#bossBar`. Game UI text is updated imperatively in `updateUI()`
@@ -118,7 +118,7 @@ gesture through `resumeAC()` (iOS starts the `AudioContext` suspended).
 
 ## Conventions
 
-- **Single file, no dependencies.** Keep additions inline in `index.html` unless asked
+- **Single file, no dependencies.** Keep additions inline in `neon-tank.html` unless asked
   to restructure.
 - **Terse, dense style.** Existing code packs many statements per line with short names
   (`N` = neon palette, `T` = tile/type constants). Match the surrounding density rather

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEON ORBIT icon renderer</title>
+<style>html,body{margin:0;background:#05060f}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Renders the NEON ORBIT app icon at any size. Size comes from ?s=NNN (default 1024).
+// A full-bleed dark square (so iOS can mask/round it) with an inset neon frame,
+// two orbit rings + dots, a star, and the stacked NEON / ORBIT wordmark.
+'use strict';
+const S = parseInt(new URLSearchParams(location.search).get('s') || '1024', 10);
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+cv.width = cv.height = S;
+const u = S / 1024;                         // scale factor from the 1024 master
+function px(v){ return v * u; }
+
+function rr(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function draw(){
+  // full-bleed background
+  ctx.fillStyle = '#05060f';
+  ctx.fillRect(0, 0, S, S);
+  // subtle radial glow
+  const g = ctx.createRadialGradient(S/2, S*0.44, S*0.05, S/2, S/2, S*0.62);
+  g.addColorStop(0, 'rgba(0,255,255,0.10)');
+  g.addColorStop(1, 'rgba(5,6,15,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+
+  // inset neon frame (stays clear of iOS corner rounding)
+  const inset = px(74), rad = px(150);
+  ctx.lineWidth = px(7);
+  ctx.strokeStyle = 'rgba(0,229,255,0.9)';
+  ctx.shadowColor = '#0ff'; ctx.shadowBlur = px(26);
+  rr(inset, inset, S - inset*2, S - inset*2, rad); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,0,255,0.35)';
+  ctx.shadowColor = '#f0f'; ctx.shadowBlur = px(20);
+  rr(inset, inset, S - inset*2, S - inset*2, rad); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const cx = S/2, cy = S*0.5;
+
+  // orbit rings
+  function ring(rx, ry, col, w){
+    ctx.strokeStyle = col; ctx.lineWidth = w; ctx.shadowColor = col; ctx.shadowBlur = px(8);
+    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  ring(px(300), px(250), 'rgba(0,229,255,0.55)', px(3));
+  ring(px(360), px(312), 'rgba(255,0,255,0.35)', px(2.5));
+
+  // dot helper
+  function dot(x, y, r, col){
+    ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = px(18);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+  }
+  dot(cx + px(300)*Math.cos(-0.7), cy + px(250)*Math.sin(-0.7), px(15), '#0ff');   // cyan on inner ring
+  dot(cx - px(360)*Math.cos(0.35), cy - px(312)*Math.sin(0.35), px(12), '#f0f');    // magenta on outer ring
+  dot(cx - px(300)*0.86, cy + px(250)*0.72, px(9), '#b070ff');                      // violet accent
+
+  // star (top-right)
+  const sx = cx + px(330), sy = cy - px(300), so = px(30), si = px(12);
+  ctx.fillStyle = '#ff0'; ctx.shadowColor = '#ff0'; ctx.shadowBlur = px(16);
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++){
+    const a = i/10*Math.PI*2 - Math.PI/2, rr2 = i%2 ? si : so;
+    const X = sx + Math.cos(a)*rr2, Y = sy + Math.sin(a)*rr2;
+    i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+  ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+
+  // wordmark
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '900 ' + px(150) + "px 'Arial Black', Arial, sans-serif";
+  ctx.fillStyle = '#0ff'; ctx.shadowColor = '#0ff'; ctx.shadowBlur = px(28);
+  ctx.fillText('NEON', cx, cy - px(78));
+  ctx.fillStyle = '#f0f'; ctx.shadowColor = '#f0f'; ctx.shadowBlur = px(28);
+  ctx.fillText('ORBIT', cx, cy + px(82));
+  ctx.shadowBlur = 0;
+}
+draw();
+window.__ready = true;
+</script>
+</body>
+</html>

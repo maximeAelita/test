@@ -3,7 +3,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 
-const SIZES = [1024, 512, 256, 180, 167, 152, 120, 76, 64, 32];
+const SIZES = [1024, 512, 256, 192, 180, 167, 152, 120, 76, 64, 32];
 const CHROME = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 (async () => {

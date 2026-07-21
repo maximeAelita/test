@@ -22,10 +22,30 @@ milestones, chain lengths, a black-hole graze, a last-instant decay escape) unlo
 with a toast and persist in `localStorage`, alongside the high score — they map
 1:1 onto Steam achievements for the desktop build.
 
-Open `neon-orbit.html` in any browser — or on iPhone, open it in Safari and use
-**Share → Add to Home Screen** to play it fullscreen like a native app (it ships the
-`apple-mobile-web-app` meta tags, safe-area padding, and zoom/scroll suppression).
-Single self-contained file, zero dependencies.
+Open `neon-orbit.html` in any browser. The game is a single self-contained file
+(zero dependencies) with an accompanying `manifest.json` and `icons/` so it installs
+as a proper web app.
+
+### Install on your iPhone home screen
+
+The game ships everything needed to install as a full-screen app with the custom
+NEON ORBIT icon (`apple-touch-icon` + web manifest, safe-area padding, zoom/scroll
+suppression). You just need to open it from a **URL** in Safari — the simplest way is
+GitHub Pages:
+
+1. In this repo, go to **Settings → Pages**.
+2. Under **Build and deployment**, set **Source: Deploy from a branch**, branch
+   **`main`**, folder **`/ (root)`**, and Save.
+3. Wait ~1 minute, then on your iPhone open **Safari** at
+   **`https://maximeaelita.github.io/test/neon-orbit.html`**
+4. Tap the **Share** button → **Add to Home Screen** → **Add**.
+
+You'll get a NEON ORBIT icon on your home screen that launches full-screen with no
+Safari chrome, like a native app. (Hosting the whole repo means `manifest.json` and
+`icons/` are served alongside the game, which is what supplies the icon.)
+
+On Android/desktop Chrome the same URL offers an **Install app** prompt via the
+manifest.
 
 **On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
 widescreen presentation, and gamepad support (A = sling, Start = pause — Steam

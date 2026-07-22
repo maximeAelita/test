@@ -27,11 +27,24 @@ canvas{display:block;background:#05060f;touch-action:none}
 #hint{position:fixed;left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom));text-align:center;
   font-size:12px;letter-spacing:2px;color:rgba(140,220,255,.45);pointer-events:none;z-index:6}
 body.touch #hint{display:none}
-#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;pointer-events:none;
-  padding:calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left));
-  font-size:15px;font-weight:bold;letter-spacing:1px;color:#0ff;text-shadow:0 0 8px #0ff}
-#hud .best{color:#f0f;text-shadow:0 0 8px #f0f}
-#combo{color:#ff0;text-shadow:0 0 8px #ff0}
+#hud{position:absolute;top:0;left:0;right:0;height:64px;pointer-events:none;z-index:6;
+  font-size:15px;font-weight:bold;letter-spacing:1px}
+#hud #score{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
+  color:#0ff;text-shadow:0 0 8px #0ff}
+#hud .best{position:absolute;top:calc(30px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));
+  font-size:12px;color:#f0f;text-shadow:0 0 8px #f0f}
+#hud #combo{position:absolute;top:calc(9px + env(safe-area-inset-top));left:0;right:0;text-align:center;
+  color:#ff0;text-shadow:0 0 8px #ff0}
+#pauseBtn{position:absolute;top:calc(8px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));
+  width:38px;height:38px;display:none;align-items:center;justify-content:center;z-index:7;
+  background:rgba(0,40,60,.4);border:1.5px solid rgba(0,229,255,.55);border-radius:10px;
+  color:#0ff;font-size:14px;letter-spacing:2px;cursor:pointer;text-shadow:0 0 8px #0ff;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+#pauseBtn:hover{border-color:#ff0;color:#ff0;text-shadow:0 0 8px #ff0}
+#pause .pausecard{display:flex;flex-direction:column;align-items:center;gap:20px;padding:32px 34px;border-radius:18px;
+  background:rgba(8,11,24,.72);border:1px solid rgba(0,255,255,.22);box-shadow:0 0 44px rgba(0,255,255,.1)}
+#pause h2{font-size:26px;letter-spacing:6px;color:#0ff;text-shadow:0 0 14px #0ff}
+#pause .pausenav{display:flex;flex-direction:column;gap:11px;width:230px}
 #toast{position:fixed;top:calc(48px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-18px);
   background:rgba(5,6,15,.88);border:1px solid #ff0;color:#ff0;text-shadow:0 0 8px #ff0;
   padding:7px 16px;font-size:13px;font-weight:bold;letter-spacing:2px;white-space:nowrap;
@@ -134,7 +147,8 @@ body.touch #hint{display:none}
 <body>
 <div id="wrap">
   <canvas id="c"></canvas>
-  <div id="hud"><div id="score">0m</div><div id="combo"></div><div class="best" id="best">BEST 0</div></div>
+  <div id="hud"><div id="score">0m</div><div class="best" id="best">BEST 0</div><div id="combo"></div></div>
+  <button id="pauseBtn" aria-label="Pause">&#10074;&#10074;</button>
   <div id="toast"></div>
   <div class="panel" id="dead" style="display:none">
     <h1>WRECKED</h1>
@@ -144,9 +158,15 @@ body.touch #hint{display:none}
     <div class="tap">TAP TO RETRY</div>
   </div>
   <div class="panel" id="pause" style="display:none">
-    <h1>PAUSED</h1>
-    <p id="pauseKeys" style="display:none">R restart &nbsp;·&nbsp; M sound &nbsp;·&nbsp; F fullscreen</p>
-    <div class="tap">TAP TO RESUME</div>
+    <div class="pausecard">
+      <h2>PAUSED</h2>
+      <div class="pausenav">
+        <button class="mbtn" data-act="resume">RESUME</button>
+        <button class="mbtn" data-act="restart">RESTART</button>
+        <button class="mbtn" data-act="psound">SOUND <span id="pauseSound">ON</span></button>
+        <button class="mbtn" data-act="mainmenu">MAIN MENU</button>
+      </div>
+    </div>
   </div>
   <div id="hint">SPACE&nbsp;SLING&nbsp;&nbsp;ESC&nbsp;PAUSE&nbsp;&nbsp;F&nbsp;FULLSCREEN&nbsp;&nbsp;M&nbsp;SOUND&nbsp;&nbsp;&#127918;&nbsp;A&nbsp;/&nbsp;START</div>
 </div>
@@ -230,7 +250,10 @@ if(window.visualViewport) visualViewport.addEventListener('resize',fitStage);
 document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('gesturechange',e=>e.preventDefault());
 let lastTouchEnd=0;
-document.addEventListener('touchend',e=>{const n=Date.now(); if(n-lastTouchEnd<300)e.preventDefault(); lastTouchEnd=n;},{passive:false});
+document.addEventListener('touchend',e=>{const n=Date.now();
+  // suppress double-tap-zoom, but never on buttons — that would cancel their click
+  if(n-lastTouchEnd<300 && !(e.target.closest&&e.target.closest('button')))e.preventDefault();
+  lastTouchEnd=n;},{passive:false});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
 // ---- audio: shared context, synth SFX, unlocked on first gesture ----
@@ -296,8 +319,7 @@ let muted=lsGet('neonOrbitMute')==='1';
 const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
 document.body.classList.add(isTouch?'touch':'no-touch');
 if(!isTouch){ // desktop wording
-  for(const el of document.querySelectorAll('.tap'))el.textContent=el.textContent.replace('TAP','CLICK');
-  document.getElementById('pauseKeys').style.display='block';}
+  for(const el of document.querySelectorAll('.tap'))el.textContent=el.textContent.replace('TAP','CLICK');}
 else document.getElementById('startHint').textContent='TAP TO START';
 if(/electron/i.test(navigator.userAgent)){const q=document.querySelector('[data-act="quit"]');if(q)q.hidden=false;}
 
@@ -424,6 +446,7 @@ function die(){
 let menuView='main';                 // main | ach | leader | opts
 let navSel=0;
 function curButtons(){
+  if(mode==='pause')return [...document.querySelectorAll('#pause .mbtn')];
   const sel=menuView==='main'?'#mainNav .mbtn:not([hidden])':'#'+
     {ach:'achScreen',leader:'leaderScreen',opts:'optScreen'}[menuView]+' .mbtn';
   return [...document.querySelectorAll(sel)];}
@@ -452,8 +475,16 @@ function refreshOpts(){document.getElementById('optSound').textContent=muted?'OF
 function startGame(){
   for(const id of ['menu','achScreen','leaderScreen','optScreen'])document.getElementById(id).hidden=true;
   document.getElementById('dead').style.display='none';
+  document.getElementById('pause').style.display='none';
   reset(); mode='play'; tPrev=0; tapLockUntil=performance.now()+180;
   document.getElementById('hud').style.opacity='1';}
+function refreshPause(){const s=document.getElementById('pauseSound');if(s)s.textContent=muted?'OFF':'ON';}
+function quitToMenu(){                       // pause -> back to the main menu (attract resumes)
+  document.getElementById('pause').style.display='none';
+  reset(); mode='menu'; menuView='main'; navSel=0;
+  document.getElementById('menu').hidden=false;
+  for(const id of ['achScreen','leaderScreen','optScreen'])document.getElementById(id).hidden=true;
+  document.getElementById('hud').style.opacity='0'; paintSel();}
 function doAct(a){
   resumeAC();
   if(a==='play')startGame();
@@ -463,6 +494,10 @@ function doAct(a){
   else if(a==='back'){showView('main');snd('latch');}
   else if(a==='quit'){try{window.close();}catch(e){}}
   else if(a==='sound'){toggleMute();refreshOpts();}
+  else if(a==='resume')togglePause();
+  else if(a==='restart')startGame();
+  else if(a==='psound'){toggleMute();refreshPause();}
+  else if(a==='mainmenu')quitToMenu();
   else if(a==='fs')toggleFS();
   else if(a==='reset'){lsSet(HSKEY,'0');lsSet('neonOrbitTop1','[]');best=0;
     document.getElementById('best').textContent='BEST 0';buildLeader();
@@ -476,31 +511,35 @@ document.querySelectorAll('.mbtn').forEach(btn=>{
 function press(){
   resumeAC(); const now=performance.now(); if(now<tapLockUntil)return;
   if(mode==='dead'){startGame(); return;}
-  if(mode==='pause'){togglePause(); return;}
   if(mode==='play'&&!ship.fly) sling();}
 function togglePause(){
-  if(mode==='play'){mode='pause';document.getElementById('pause').style.display='flex';}
+  if(mode==='play'){mode='pause';refreshPause();navSel=0;
+    document.getElementById('pause').style.display='flex';paintSel();}
   else if(mode==='pause'){document.getElementById('pause').style.display='none';mode='play';tPrev=0;}}
 function toggleFS(){const de=document.documentElement;
   if(document.fullscreenElement){if(document.exitFullscreen)document.exitFullscreen();}
   else if(de.requestFullscreen)de.requestFullscreen();
   else if(de.webkitRequestFullscreen)de.webkitRequestFullscreen();}
 function toggleMute(){muted=!muted;lsSet('neonOrbitMute',muted?'1':'0');if(!muted){resumeAC();snd('latch');}}
-addEventListener('pointerdown',e=>{if(mode==='menu')return;   // menu: DOM buttons handle taps
+addEventListener('pointerdown',e=>{
+  if(mode==='menu'||mode==='pause')return;      // those screens use their own buttons
+  if(e.target.closest('button'))return;         // on-screen buttons (pause) handle themselves
   e.preventDefault(); press();},{passive:false});
 addEventListener('keydown',e=>{
-  if(mode==='menu'){                                          // menu navigation
+  if(mode==='menu'||mode==='pause'){                          // navigable screens
     if(e.code==='ArrowUp'||e.code==='KeyW'){e.preventDefault();moveSel(-1);}
     else if(e.code==='ArrowDown'||e.code==='KeyS'){e.preventDefault();moveSel(1);}
     else if(e.code==='Enter'||e.code==='Space'){e.preventDefault();activateSel();}
-    else if(e.code==='Escape'){if(menuView!=='main')showView('main');}
+    else if(e.code==='Escape'){if(mode==='pause')togglePause(); else if(menuView!=='main')showView('main');}
     else if(e.code==='KeyF')toggleFS();
+    else if(e.code==='KeyM'&&mode==='pause'){toggleMute();refreshPause();}
     return;}
   if(e.code==='Space'){e.preventDefault(); press();}
   else if(e.code==='Escape')togglePause();
   else if(e.code==='KeyF')toggleFS();
   else if(e.code==='KeyM')toggleMute();
-  else if(e.code==='KeyR'&&(mode==='play'||mode==='pause'||mode==='dead'))startGame();});
+  else if(e.code==='KeyR'&&(mode==='play'||mode==='dead'))startGame();});
+document.getElementById('pauseBtn').addEventListener('click',e=>{e.stopPropagation();togglePause();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play'){
   mode='pause';document.getElementById('pause').style.display='flex';}});
 // gamepad (Steam Deck / controllers): in menu = D-pad/stick navigate, A select, B back; in game = A sling, Start pause
@@ -513,11 +552,12 @@ function pollPad(){const gps=navigator.getGamepads?navigator.getGamepads():[];
     const ay=gp.axes[1]||0;
     const up=(gp.buttons[12]&&gp.buttons[12].pressed)||ay<-0.5;
     const dn=(gp.buttons[13]&&gp.buttons[13].pressed)||ay>0.5;
-    if(mode==='menu'){
+    if(mode==='menu'||mode==='pause'){
       if(up&&!padU)moveSel(-1);
       if(dn&&!padD)moveSel(1);
       if(a&&!padA)activateSel();
-      if(b&&!padB&&menuView!=='main')showView('main');
+      if(b&&!padB){if(mode==='pause')togglePause(); else if(menuView!=='main')showView('main');}
+      if(s&&!padS&&mode==='pause')togglePause();
     }else{
       if(a&&!padA)press();
       if(s&&!padS)togglePause();}
@@ -699,6 +739,7 @@ function loop(ts){
     for(const q of texts){q.t+=dt;q.y-=28*dt;} texts=texts.filter(q=>q.t<0.9);
     if(shake>0)shake=Math.max(0,shake-dt*22);}
   document.getElementById('hud').style.opacity=(mode==='menu')?'0':'1';
+  document.getElementById('pauseBtn').style.display=(mode==='play')?'flex':'none';
   draw();
 }
 reset(); mode='menu';

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEON TANK icon renderer</title>
+<style>html,body{margin:0;background:#03070b}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Renders the NEON TANK app icon at any size. Size comes from ?s=NNN (default 1024).
+// A full-bleed dark square (so iOS can mask/round it) with an inset neon frame and a
+// top-down neon tank (tracks, hull, turret, barrel) in the game's cyan/pink/gold.
+'use strict';
+const S = parseInt(new URLSearchParams(location.search).get('s') || '1024', 10);
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+cv.width = cv.height = S;
+const u = S / 1024;
+const px = v => v * u;
+const CY = '#00ffc8', PK = '#ff3366', GD = '#ffdd00';
+
+function rr(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function neonRect(x, y, w, h, r, col, fill, lw){
+  ctx.strokeStyle = col; ctx.shadowColor = col; ctx.shadowBlur = px(14); ctx.lineWidth = px(lw);
+  rr(x, y, w, h, r); if (fill){ ctx.fillStyle = fill; ctx.fill(); } ctx.stroke(); ctx.shadowBlur = 0;
+}
+
+function draw(){
+  // full-bleed background + faint arena grid
+  ctx.fillStyle = '#03070b'; ctx.fillRect(0, 0, S, S);
+  ctx.strokeStyle = 'rgba(0,255,200,0.06)'; ctx.lineWidth = 1;
+  for (let i = 1; i < 8; i++){ const g = S / 8 * i;
+    ctx.beginPath(); ctx.moveTo(g, 90 * u); ctx.lineTo(g, S - 90 * u); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(90 * u, g); ctx.lineTo(S - 90 * u, g); ctx.stroke(); }
+  const glow = ctx.createRadialGradient(S/2, S*0.46, S*0.05, S/2, S/2, S*0.62);
+  glow.addColorStop(0, 'rgba(0,255,200,0.10)'); glow.addColorStop(1, 'rgba(3,7,11,0)');
+  ctx.fillStyle = glow; ctx.fillRect(0, 0, S, S);
+
+  // inset neon frame
+  const inset = px(74), rad = px(150);
+  ctx.lineWidth = px(7);
+  ctx.strokeStyle = CY; ctx.shadowColor = CY; ctx.shadowBlur = px(26); rr(inset, inset, S-inset*2, S-inset*2, rad); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,51,102,0.35)'; ctx.shadowColor = PK; ctx.shadowBlur = px(18); rr(inset, inset, S-inset*2, S-inset*2, rad); ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  const cx = S/2, cy = S*0.5;
+  // tracks
+  neonRect(cx - px(230), cy - px(240), px(120), px(480), px(26), CY, 'rgba(0,255,200,0.10)', 5);
+  neonRect(cx + px(110), cy - px(240), px(120), px(480), px(26), CY, 'rgba(0,255,200,0.10)', 5);
+  // track treads
+  ctx.strokeStyle = 'rgba(0,255,200,0.5)'; ctx.lineWidth = px(3);
+  for (let i = 0; i < 6; i++){ const ty = cy - px(200) + i * px(80);
+    ctx.beginPath(); ctx.moveTo(cx - px(226), ty); ctx.lineTo(cx - px(114), ty); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + px(114), ty); ctx.lineTo(cx + px(226), ty); ctx.stroke(); }
+  // hull
+  neonRect(cx - px(150), cy - px(190), px(300), px(380), px(34), CY, 'rgba(0,255,200,0.14)', 6);
+  // barrel
+  neonRect(cx - px(30), cy - px(360), px(60), px(300), px(14), GD, 'rgba(255,221,0,0.16)', 5);
+  // muzzle
+  neonRect(cx - px(46), cy - px(388), px(92), px(46), px(12), GD, 'rgba(255,221,0,0.2)', 4);
+  // turret
+  ctx.strokeStyle = CY; ctx.shadowColor = CY; ctx.shadowBlur = px(20); ctx.lineWidth = px(7);
+  ctx.fillStyle = 'rgba(0,255,200,0.18)';
+  ctx.beginPath(); ctx.arc(cx, cy, px(120), 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  // turret pink core
+  ctx.strokeStyle = PK; ctx.shadowColor = PK; ctx.shadowBlur = px(16); ctx.lineWidth = px(5);
+  ctx.beginPath(); ctx.arc(cx, cy, px(58), 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = PK; ctx.beginPath(); ctx.arc(cx, cy, px(20), 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur = 0;
+}
+draw();
+window.__ready = true;
+</script>
+</body>
+</html>

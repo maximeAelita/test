@@ -1,0 +1,15 @@
+{
+  "name": "NEON TANK",
+  "short_name": "Neon Tank",
+  "description": "Top-down neon arena tank shooter with bosses and upgrades.",
+  "start_url": "./neon-tank.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#03070b",
+  "theme_color": "#03070b",
+  "icons": [
+    { "src": "icons-tank/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons-tank/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

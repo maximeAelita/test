@@ -49,6 +49,10 @@ Safari chrome, like a native app. (Hosting the whole repo means `manifest.json` 
 On Android/desktop Chrome the same URL offers an **Install app** prompt via the
 manifest.
 
+**NEON TANK** is installable the same way — open
+`https://maximeaelita.github.io/test/neon-tank.html` in Safari and **Add to Home
+Screen**. It has its own tank icon (`icons-tank/`) and manifest (`manifest-tank.json`).
+
 **On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
 widescreen presentation, and gamepad support (A = sling, Start = pause — Steam
 Deck friendly). Keys: click/`Space` sling · `Esc` pause · `R` restart ·

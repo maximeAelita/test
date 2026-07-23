@@ -360,20 +360,27 @@ function makePlanet(x,y,spiked,decay){
   const mov=(!spiked&&!decay && Math.random()<Math.min(0.4,heightM/700)) ? {amp:rand(35,80),spd:rand(0.6,1.3),ph:rand(0,6.28)} : null;
   return {x,y,bx:x,r,spiked,decay:!!decay,mov,vx:0,px:x,hue:spiked?310:decay?38:HUES[(Math.random()*HUES.length)|0]};}
 
-let genX=LW/2;
+let genX=LW/2, lastDecay=false;
 function genUpTo(limitY){
   while(topGenY>limitY){
     const gap=rand(108,168); topGenY-=gap;
-    const x=genX=Math.min(LW-64,Math.max(64,genX+rand(-165,165)));
-    const roll=Math.random();
-    const pSpike=heightM>40?Math.min(0.3,0.05+heightM/900):0;
-    const pDecay=heightM>60?Math.min(0.24,0.05+heightM/1100):0;
-    const spiked=roll<pSpike, decay=!spiked&&roll<pSpike+pDecay;
-    const p=makePlanet(x,topGenY,spiked,decay); planets.push(p);
-    if(heightM>120&&Math.random()<Math.min(0.3,0.1+(heightM-120)/1600)){
-      const hx=Math.min(LW-40,Math.max(40,x+(Math.random()<0.5?-1:1)*rand(115,195)));
+    const x=genX=Math.min(LW-64,Math.max(64,genX+rand(-150,150)));
+    // The path planet is ALWAYS safe and latchable, so every band has a landing spot —
+    // occasionally a decay planet (still escapable), but never two in a row.
+    const pDecay=(heightM>60 && !lastDecay)?Math.min(0.22,0.04+heightM/1300):0;
+    const decay=Math.random()<pDecay; lastDecay=decay;
+    const p=makePlanet(x,topGenY,false,decay); planets.push(p);
+    // Spiked planets are EXTRA hazards offset to one side — a route threat, never the only target.
+    const pSpike=heightM>55?Math.min(0.46,0.12+(heightM-55)/750):0;
+    if(Math.random()<pSpike){
+      const side=Math.random()<0.5?-1:1;
+      const sx=Math.min(LW-30,Math.max(30,x+side*rand(120,190)));
+      planets.push(makePlanet(sx,topGenY+rand(-28,28),true,false));}
+    // Black holes: offset obstacles that bend the arc.
+    if(heightM>140&&Math.random()<Math.min(0.26,0.07+(heightM-140)/1800)){
+      const hx=Math.min(LW-40,Math.max(40,x+(Math.random()<0.5?-1:1)*rand(120,200)));
       holes.push({x:hx,y:topGenY+gap*0.45,ph:rand(0,6.28)});}
-    if(Math.random()<0.62){const a=rand(0,6.28),d=p.r+rand(38,86);
+    if(Math.random()<0.6){const a=rand(0,6.28),d=p.r+rand(38,86);
       stars.push({x:Math.min(LW-14,Math.max(14,p.x+Math.cos(a)*d)),y:p.y+Math.sin(a)*d,ph:rand(0,6.28)});}
   }}
 
@@ -381,7 +388,7 @@ function reset(){
   ship={x:LW/2,y:-60,vx:0,vy:0,fly:false,p:null,orbR:0,ang:-Math.PI/2,angV:0,lastP:null,relT:0,trail:[],grazedBH:false};
   planets=[]; stars=[]; parts=[]; holes=[]; texts=[]; runAch=[];
   shake=0; starCt=0; heightM=0; score=0; combo=0; bonusPts=0;
-  startY=ship.y; camY=ship.y-LH*0.62; topGenY=0; genX=LW/2;
+  startY=ship.y; camY=ship.y-LH*0.62; topGenY=0; genX=LW/2; lastDecay=false;
   const p0=makePlanet(LW/2,0,false); p0.r=34; planets.push(p0);
   latch(p0); ship.angV=baseSpeed(0)/ship.orbR;   // start already in orbit
   genUpTo(camY-300);}

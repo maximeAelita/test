@@ -361,21 +361,42 @@ function makePlanet(x,y,spiked,decay){
   return {x,y,bx:x,r,spiked,decay:!!decay,mov,vx:0,px:x,hue:spiked?310:decay?38:HUES[(Math.random()*HUES.length)|0]};}
 
 let genX=LW/2, lastDecay=false;
+// A spike must never sit inside any planet's orbit zone (radius r+ORB_MAX) — otherwise it can
+// overlap a planet or be orbited through harmlessly. This is the clearance a point at (x,y)
+// belonging to a body of radius `r` needs from every existing spike.
+function clearOfSpikes(x,y,r){
+  for(const q of planets){ if(!q.spiked)continue;
+    if(Math.hypot(q.x-x,q.y-y) < r+ORB_MAX+q.r+14) return false; }
+  return true;}
 function genUpTo(limitY){
   while(topGenY>limitY){
     const gap=rand(108,168); topGenY-=gap;
-    const x=genX=Math.min(LW-64,Math.max(64,genX+rand(-150,150)));
+    let x=Math.min(LW-64,Math.max(64,genX+rand(-150,150)));
+    // Nudge the safe path planet away from any existing spike's orbit zone.
+    for(let t=0;t<4 && !clearOfSpikes(x,topGenY,42);t++){
+      let worst=null,wd=1e9;
+      for(const q of planets){ if(!q.spiked)continue; const dd=Math.hypot(q.x-x,q.y-topGenY);
+        if(dd<wd){wd=dd;worst=q;} }
+      if(!worst)break;
+      x=Math.min(LW-64,Math.max(64, worst.x+(x>=worst.x?1:-1)*(42+ORB_MAX+worst.r+18)));}
+    genX=x;
     // The path planet is ALWAYS safe and latchable, so every band has a landing spot —
     // occasionally a decay planet (still escapable), but never two in a row.
     const pDecay=(heightM>60 && !lastDecay)?Math.min(0.22,0.04+heightM/1300):0;
     const decay=Math.random()<pDecay; lastDecay=decay;
     const p=makePlanet(x,topGenY,false,decay); planets.push(p);
-    // Spiked planets are EXTRA hazards offset to one side — a route threat, never the only target.
-    const pSpike=heightM>55?Math.min(0.46,0.12+(heightM-55)/750):0;
+    // Spiked planets: extra hazards, placed only where they stay clear of every planet's orbit
+    // zone (and don't overlap another spike / hole) — else skipped, so they never merge.
+    const pSpike=heightM>55?Math.min(0.5,0.14+(heightM-55)/700):0;
     if(Math.random()<pSpike){
-      const side=Math.random()<0.5?-1:1;
-      const sx=Math.min(LW-30,Math.max(30,x+side*rand(120,190)));
-      planets.push(makePlanet(sx,topGenY+rand(-28,28),true,false));}
+      for(let t=0;t<4;t++){
+        const sr=rand(24,38), side=Math.random()<0.5?-1:1;
+        const sx=Math.min(LW-sr-6,Math.max(sr+6,x+side*rand(150,215))), sy=topGenY+rand(-24,24);
+        let ok=true;
+        for(const q of planets){const need=q.spiked?sr+q.r+18:q.r+ORB_MAX+sr+12;
+          if(Math.hypot(q.x-sx,q.y-sy)<need){ok=false;break;}}
+        if(ok)for(const h of holes){if(Math.hypot(h.x-sx,h.y-sy)<sr+58){ok=false;break;}}
+        if(ok){const sp=makePlanet(sx,sy,true,false); sp.r=sr; planets.push(sp); break;}}}
     // Black holes: offset obstacles that bend the arc.
     if(heightM>140&&Math.random()<Math.min(0.26,0.07+(heightM-140)/1800)){
       const hx=Math.min(LW-40,Math.max(40,x+(Math.random()<0.5?-1:1)*rand(120,200)));

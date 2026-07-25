@@ -52,7 +52,7 @@ On a keyboard:
 | Key | Action |
 | --- | --- |
 | <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> | Move and aim (8-way) |
-| <kbd>Z</kbd> | Fire |
+| <kbd>Z</kbd> or **left click** | Fire |
 | <kbd>X</kbd> | Jump |
 | <kbd>↓</kbd> | Go prone — shots pass overhead |
 | <kbd>↓</kbd> + <kbd>X</kbd> | Drop through a ledge |

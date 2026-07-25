@@ -650,7 +650,7 @@ const WEAPONS={
 
 /* -------------------------------------------------------------- entities  */
 let player, bullets=[], ebullets=[], enemies=[], pickups=[], parts=[], floats=[];
-let cam={x:0,y:0,lock:false}, shake=0, hitstop=0, frame=0;
+let cam={x:0,y:0,lock:false,max:0}, shake=0, hitstop=0, frame=0;
 /* playfield width (in game px) hidden behind the on-screen stick — measured in fit(),
    since the safe-area inset pushes the stick further in on a notched phone.
    RING is the stick's radius; it lives out here because fit() needs it too. */
@@ -671,7 +671,7 @@ function mkPlayer(x,y){
 function resetRun(){
   bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];
   score=0; lives=konamiOn?30:3; weapon='R'; boss=null; bossActive=false; bossDeadT=0;
-  cam={x:0,y:0,lock:false}; shake=0; stageTime=0;
+  cam={x:0,y:0,lock:false,max:0}; shake=0; stageTime=0;
   spawns.forEach(s=>s.done=false);
   player=mkPlayer(40,GY-24);
 }
@@ -958,7 +958,7 @@ function updateEnemies(){
         if(--e.fireT<=0){ eShoot(e,pcx,pcy,2.6,'#8be9ff'); e.fireT=rndi(70,120); }
         break; }
     }
-    if(e.x < cam.x-140 || e.x > cam.x+W+180) if(e.type==='runner'||e.type==='gunner') e.dead=true;
+    if(e.x < cam.x-140 || e.x > cam.max+W+180) if(e.type==='runner'||e.type==='gunner') e.dead=true;
   }
   enemies=enemies.filter(e=>!e.dead);
 }
@@ -1125,9 +1125,11 @@ function updateCamera(){
   /* touch: frame the player centred, clear of the thumb on the stick.
      desktop keeps the original 38% lead (more of the level visible ahead). */
   const target=clamp(player.x - W*(isTouch?0.50:0.38), 0, LVL_W-W);
-  cam.x = Math.max(cam.x, lerp(cam.x,target,0.12));   /* never scroll back */
-  cam.x = clamp(cam.x,0,LVL_W-W);
-  for(const s of spawns) if(!s.done && cam.x>=s.x){ s.done=true; s.fn(); }
+  /* follows both ways: you can walk back for enemies left behind. cam.max remembers
+     the furthest point reached, so retreating doesn't cull the wave ahead of you */
+  cam.x = clamp(lerp(cam.x,target,0.12), 0, LVL_W-W);
+  cam.max = Math.max(cam.max, cam.x);
+  for(const s of spawns) if(!s.done && cam.max>=s.x){ s.done=true; s.fn(); }
 }
 
 /* ------------------------------------------------------------------- draw */

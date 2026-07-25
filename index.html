@@ -65,7 +65,7 @@
 </head>
 <body>
 <div id="stage"><canvas id="cv" width="384" height="216"></canvas><div id="glow"></div><div id="crt"></div></div>
-<div id="foot"><b>&larr;&uarr;&darr;&rarr;</b> move / aim &nbsp;·&nbsp; <b>Z</b> fire &nbsp;·&nbsp; <b>X</b> jump &nbsp;·&nbsp; <b>Enter</b> start / pause &nbsp;·&nbsp; <b>M</b> mute</div>
+<div id="foot"><b>&larr;&uarr;&darr;&rarr;</b> move / aim &nbsp;·&nbsp; <b>Z</b> / <b>click</b> fire &nbsp;·&nbsp; <b>X</b> jump &nbsp;·&nbsp; <b>Enter</b> start / pause &nbsp;·&nbsp; <b>M</b> mute</div>
 <div id="pad">
   <div class="z" id="stickZone"></div>
   <div id="stick"><div id="nub"></div></div>
@@ -1681,6 +1681,20 @@ if(isTouch){
   let lastTap=0;
   addEventListener('touchend',e=>{ const n=Date.now(); if(n-lastTap<300) e.preventDefault(); lastTap=n; },{passive:false});
   addEventListener('contextmenu',e=>e.preventDefault());
+}
+
+/* ------------------------------------------------------------ mouse input */
+/* left click fires, same as Z. gated off on touch devices, where a tap already
+   means something and would otherwise arrive twice as a synthetic mouse event. */
+if(!isTouch){
+  addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    e.preventDefault();
+    Audio_.init(); Audio_.resume();
+    if(state!=='PLAY'){ doStart(); return; }   /* click also starts / advances */
+    keys.fire=true; pressed.fire=true;
+  });
+  addEventListener('mouseup',e=>{ if(e.button===0) keys.fire=false; });
 }
 
 /* ----------------------------------------------------------------- resize */

@@ -16,7 +16,31 @@ Or serve the folder if you prefer:
 python3 -m http.server 8000
 ```
 
+## Install on your iPhone home screen
+
+The game ships everything needed to install as a full-screen app with its own icon
+(`apple-touch-icon` + [`manifest.json`](manifest.json), safe-area padding, zoom and
+scroll suppression). You just need to open it from a **URL** in Safari — via GitHub
+Pages that's:
+
+**`https://maximeaelita.github.io/test/contra/`**
+
+Tap **Share** → **Add to Home Screen** → **Add**. It launches full-screen with no
+Safari chrome. Hold the phone in **landscape** — the game is a 384×216 widescreen
+playfield, and in portrait it shows a rotate prompt instead.
+
+On Android/desktop Chrome the same URL offers an **Install app** prompt.
+
 ## Controls
+
+On a phone or tablet the on-screen pad appears automatically: a **thumbstick** on the
+left for 8-way movement and aim, **FIRE** and **JUMP** on the right, **VOL** to mute.
+It is genuine multi-touch, so you can run, aim diagonally and fire at the same time,
+and hold down + JUMP to drop through a ledge. Tap the playfield to start.
+
+![On-screen controls](touch.png)
+
+On a keyboard:
 
 | Key | Action |
 | --- | --- |

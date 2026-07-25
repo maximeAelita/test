@@ -653,10 +653,14 @@ let score=0, lives=3, weapon='R', stageTime=0;
 let boss=null, bossActive=false, bossDeadT=0;
 let state='TITLE', stateT=0, fade=0, konamiOn=false;
 
+/* shield: soaks SHIELD_MAX hits, refills after SHIELD_REGEN frames without being hit.
+   SHIELD_HIT_INV is the mercy window after an absorb, so one burst can't eat all three. */
+const SHIELD_MAX=3, SHIELD_REGEN=300, SHIELD_HIT_INV=52;
 function mkPlayer(x,y){
   return {x,y,w:9,h:22,vx:0,vy:0,dir:1,onGround:false,prone:false,
     aim:0, animT:0, frameI:0, spinT:0, fireCd:0, dropT:0,
-    dead:false, deadT:0, inv:120, barrier:0, walkOut:false};
+    dead:false, deadT:0, inv:120, barrier:0, walkOut:false,
+    shield:SHIELD_MAX, regenT:0, shieldFlash:0};
 }
 function resetRun(){
   bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];
@@ -751,6 +755,12 @@ function updatePlayer(){
   if(p.inv>0) p.inv--;
   if(p.barrier>0) p.barrier--;
   if(p.dropT>0) p.dropT--;
+  if(p.shieldFlash>0) p.shieldFlash--;
+  /* out of combat (nothing has got through for SHIELD_REGEN frames) => back to full */
+  if(p.shield<SHIELD_MAX && ++p.regenT>=SHIELD_REGEN){
+    p.shield=SHIELD_MAX; p.regenT=0; p.shieldFlash=14;
+    Audio_.power(); floatText(p.x, p.y-8, 'SHIELD UP', '#7fe3ff');
+  }
 
   const L=keys.l,R=keys.r,U=keys.u,D=keys.d;
   /* prone only on ground with nothing else */
@@ -839,9 +849,19 @@ function fire(){
   parts.push({x:m.x,y:m.y,flash:true,life:5,t:0,a:p.aim});
   shake=Math.max(shake, weapon==='S'||weapon==='L'?1.6:0.8);
 }
+function shieldAbsorb(p){
+  p.shield--; p.regenT=0; p.inv=SHIELD_HIT_INV; p.shieldFlash=14;
+  Audio_.hit(); shake=Math.max(shake,3);
+  floatText(p.x, p.y-6, p.shield>0?'SHIELD '+p.shield:'SHIELD DOWN', p.shield>0?'#7fe3ff':'#ff9a4d');
+  for(let i=0;i<12;i++){ const a=i*TAU/12;
+    parts.push({x:p.x+5+Math.cos(a)*13, y:p.y+11+Math.sin(a)*13,
+      vx:Math.cos(a)*1.7, vy:Math.sin(a)*1.7, life:rnd(26,12), t:0, col:'#7fe3ff', g:0.02, sz:1}); }
+}
 function killPlayer(fell){
   const p=player; if(p.dead||p.inv>0&&!fell) return;
   if(p.barrier>0 && !fell) return;
+  /* a shot is soaked by the shield; a pit still kills outright */
+  if(p.shield>0 && !fell){ shieldAbsorb(p); return; }
   p.dead=true; p.deadT=0; p.vy=fell?0:-3.4; p.vx=fell?0:-p.dir*1.2;
   if(fell){ p.deadT=42; p.y=H+40; Audio_.die(); Audio_.noise(0.35,0.25,700,0.2); }
   bullets.length=0;
@@ -1148,6 +1168,14 @@ function drawPlayer(g){
     g.strokeStyle='#c9a8ff'; g.lineWidth=1;
     g.beginPath(); g.arc(sx+5, p.y+11, 15+Math.sin(frame*0.2), 0, TAU); g.stroke(); g.restore();
   }
+  if(p.shield>0 || p.shieldFlash>0){
+    g.save();
+    const f=p.shieldFlash;
+    g.globalAlpha = f>0 ? 0.30+0.55*(f/14) : 0.12+0.05*p.shield+0.04*Math.sin(frame*0.11);
+    g.strokeStyle='#7fe3ff'; g.lineWidth=1;
+    g.beginPath(); g.arc(sx+5, p.y+11, 13+(f>0?(14-f)*0.45:0), 0, TAU); g.stroke();
+    g.restore();
+  }
   if(p.prone){ blit(g,SPR.prone, sx-(flip?11:2), p.y+12, flip); drawGunArm(g,sx,p.y+12,true); return; }
   if(!p.onGround){
     g.save(); g.translate(Math.round(sx+5), Math.round(p.y+11));
@@ -1372,6 +1400,19 @@ function drawHUD(g){
   const shown=Math.min(lives,6);
   for(let i=0;i<shown;i++) blit(g,SPR.head, 92+i*9, 1, false);
   if(lives>6) drawText(g,'X'+lives, 92+7*9, 2,'#fff',1);
+  /* shield pips, with the out-of-combat recharge running underneath them */
+  if(player){
+    for(let i=0;i<SHIELD_MAX;i++){
+      const x=160+i*8;
+      g.fillStyle = i<player.shield ? '#7fe3ff' : 'rgba(127,227,255,.16)';
+      g.fillRect(x,3,6,5);
+    }
+    if(player.shield<SHIELD_MAX){
+      const bw=SHIELD_MAX*8-2, pr=clamp(player.regenT/SHIELD_REGEN,0,1);
+      g.fillStyle='rgba(127,227,255,.22)'; g.fillRect(160,9,bw,1);
+      g.fillStyle='#7fe3ff'; g.fillRect(160,9,Math.round(bw*pr),1);
+    }
+  }
   /* weapon */
   const w=WEAPONS[weapon];
   g.fillStyle='rgba(0,0,0,.5)'; g.fillRect(W-96,1,44,9);

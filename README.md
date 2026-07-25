@@ -7,6 +7,7 @@ The site root (`index.html`) redirects to **NEON ORBIT**, the default game.
 | **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall (default at the site root) |
 | **ECHO DUNGEON** | [`echo-dungeon.html`](./echo-dungeon.html) | 3D anime puzzle RPG played mostly by ear (below) |
 | **NEON TANK** | [`neon-tank.html`](./neon-tank.html) | Top-down neon arena tank shooter with bosses and upgrades |
+| **CONTRA** | [`contra/`](./contra) | Run-and-gun homage to Contra stage 1 — landscape, installable, on-screen pad on mobile |
 
 ## NEON ORBIT
 
@@ -52,6 +53,13 @@ manifest.
 **NEON TANK** is installable the same way — open
 `https://maximeaelita.github.io/test/neon-tank.html` in Safari and **Add to Home
 Screen**. It has its own tank icon (`icons-tank/`) and manifest (`manifest-tank.json`).
+
+**CONTRA** is installable the same way — open
+`https://maximeaelita.github.io/test/contra/` in Safari and **Add to Home Screen**. It
+keeps its icon and manifest inside its own folder (`contra/icons/`, `contra/manifest.json`).
+Play it in **landscape**: on touch devices it shows an on-screen thumbstick plus
+FIRE/JUMP buttons, and prompts you to rotate if you're in portrait. See
+[`contra/README.md`](./contra/README.md).
 
 **On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
 widescreen presentation, and gamepad support (A = sling, Start = pause — Steam

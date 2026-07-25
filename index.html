@@ -646,6 +646,9 @@ const WEAPONS={
 /* -------------------------------------------------------------- entities  */
 let player, bullets=[], ebullets=[], enemies=[], pickups=[], parts=[], floats=[];
 let cam={x:0,y:0,lock:false}, shake=0, hitstop=0, frame=0;
+/* playfield width (in game px) hidden behind the on-screen stick — measured in fit(),
+   since the safe-area inset pushes the stick further in on a notched phone */
+let padLeft=0;
 let score=0, lives=3, weapon='R', stageTime=0;
 let boss=null, bossActive=false, bossDeadT=0;
 let state='TITLE', stateT=0, fade=0, konamiOn=false;
@@ -782,7 +785,9 @@ function updatePlayer(){
       if(p.vx>0) p.x=s.x-p.w; else if(p.vx<0) p.x=s.x+s.w;
     }
   }
-  p.x=clamp(p.x, cam.x+2, cam.x+W-p.w-2);
+  /* backing up must not slide the player in behind the stick, since the camera
+     never scrolls back — padLeft is 0 on desktop */
+  p.x=clamp(p.x, cam.x+2+padLeft, cam.x+W-p.w-2);
 
   const prevBottom=p.y+PH;
   p.y+=p.vy;
@@ -1089,7 +1094,9 @@ function updateParts(){
 /* ----------------------------------------------------------------- camera */
 function updateCamera(){
   if(cam.lock){ cam.x=lerp(cam.x, LVL_W-W, 0.10); return; }
-  const target=clamp(player.x - W*0.38, 0, LVL_W-W);
+  /* touch: frame the player centred, clear of the thumb on the stick.
+     desktop keeps the original 38% lead (more of the level visible ahead). */
+  const target=clamp(player.x - W*(isTouch?0.50:0.38), 0, LVL_W-W);
   cam.x = Math.max(cam.x, lerp(cam.x,target,0.12));   /* never scroll back */
   cam.x = clamp(cam.x,0,LVL_W-W);
   for(const s of spawns) if(!s.done && cam.x>=s.x){ s.done=true; s.fn(); }
@@ -1609,6 +1616,10 @@ function fit(){
     const vv=window.visualViewport, vw=vv?vv.width:innerWidth, vh=vv?vv.height:innerHeight;
     const s=Math.min(vw/W, vh/H);
     cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px';
+    /* how far the stick reaches into the playfield, in game px (getBoundingClientRect
+       flushes the layout above, and picks up the safe-area inset for free) */
+    const sr=document.getElementById('stick').getBoundingClientRect(), cr=cv.getBoundingClientRect();
+    padLeft = sr.width ? clamp(Math.round((sr.right-cr.left)/s)+14, 0, Math.round(W*0.25)) : 0;
     return;
   }
   const pad=54;

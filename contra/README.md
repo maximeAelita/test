@@ -38,6 +38,13 @@ left for 8-way movement and aim, **FIRE** and **JUMP** on the right, **VOL** to 
 It is genuine multi-touch, so you can run, aim diagonally and fire at the same time,
 and hold down + JUMP to drop through a ledge. Tap the playfield to start.
 
+The stick uses a **floating origin**: put your thumb down anywhere in the lower-left
+of the screen and the ring centres itself there, so landing is neutral and you never
+have to look for a target. Direction only starts once you move. Sectors are
+**weighted** — running left/right gets the widest arc, the 45° aim stays generous,
+straight up/down are narrower — and a held direction **sticks** until your thumb is
+clearly past the boundary, so a shaky grip can't strobe between two directions.
+
 ![On-screen controls](touch.png)
 
 On a keyboard:

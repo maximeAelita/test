@@ -38,10 +38,14 @@
   body.touch #foot{display:none}
   body.touch #pad{display:block;position:fixed;inset:0;z-index:5;pointer-events:none}
   #pad .z{position:absolute;pointer-events:auto;touch-action:none}
-  #stick{left:calc(env(safe-area-inset-left) + 14px);bottom:calc(env(safe-area-inset-bottom) + 14px);
-    width:132px;height:132px;border-radius:50%;background:rgba(120,150,190,.07);
-    border:2px solid rgba(150,180,220,.20)}
-  #nub{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;
+  /* invisible activation area — the thumb never has to find a target */
+  #stickZone{left:env(safe-area-inset-left);bottom:0;width:34%;height:62%}
+  /* the ring is purely visual: it floats to wherever the thumb lands */
+  #stick{position:fixed;width:104px;height:104px;border-radius:50%;pointer-events:none;
+    background:rgba(120,150,190,.07);border:2px solid rgba(150,180,220,.20);
+    opacity:.5;transition:opacity .12s linear}
+  #stick.live{opacity:1}
+  #nub{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;
     background:rgba(180,205,240,.20);border:2px solid rgba(190,215,245,.42);pointer-events:none;
     transition:transform .05s linear}
   #pad .b{width:78px;height:78px;border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -63,7 +67,8 @@
 <div id="stage"><canvas id="cv" width="384" height="216"></canvas><div id="glow"></div><div id="crt"></div></div>
 <div id="foot"><b>&larr;&uarr;&darr;&rarr;</b> move / aim &nbsp;·&nbsp; <b>Z</b> fire &nbsp;·&nbsp; <b>X</b> jump &nbsp;·&nbsp; <b>Enter</b> start / pause &nbsp;·&nbsp; <b>M</b> mute</div>
 <div id="pad">
-  <div class="z" id="stick"><div id="nub"></div></div>
+  <div class="z" id="stickZone"></div>
+  <div id="stick"><div id="nub"></div></div>
   <div class="z b" id="bFire">FIRE</div>
   <div class="z b" id="bJump">JUMP</div>
   <div class="z b" id="bMute">VOL</div>
@@ -647,8 +652,9 @@ const WEAPONS={
 let player, bullets=[], ebullets=[], enemies=[], pickups=[], parts=[], floats=[];
 let cam={x:0,y:0,lock:false}, shake=0, hitstop=0, frame=0;
 /* playfield width (in game px) hidden behind the on-screen stick — measured in fit(),
-   since the safe-area inset pushes the stick further in on a notched phone */
-let padLeft=0;
+   since the safe-area inset pushes the stick further in on a notched phone.
+   RING is the stick's radius; it lives out here because fit() needs it too. */
+let padLeft=0; const RING=52;
 let score=0, lives=3, weapon='R', stageTime=0;
 let boss=null, bossActive=false, bossDeadT=0;
 let state='TITLE', stateT=0, fade=0, konamiOn=false;
@@ -868,8 +874,10 @@ function killPlayer(fell){
 }
 function respawn(){
   const p=player;
-  let x=clamp(cam.x+30, 0, LVL_W-30);
-  const gp=onGroundAt(x+5) || onGroundAt(cam.x+80);
+  /* spawn past padLeft, else the left clamp in updatePlayer shoves the player off
+     whichever platform we just picked here */
+  let x=clamp(cam.x+30+padLeft, 0, LVL_W-30);
+  const gp=onGroundAt(x+5) || onGroundAt(cam.x+80+padLeft);
   player=mkPlayer(gp?clamp(x,gp.x+4,gp.x+gp.w-14):x, -30);
   player.inv=150;
   weapon='R';
@@ -1588,37 +1596,61 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0 ||
   (window.matchMedia && matchMedia('(pointer:coarse)').matches);
 document.body.className = isTouch ? 'touch' : 'no-touch';
 if(isTouch){
-  const stick=document.getElementById('stick'), nub=document.getElementById('nub'),
-        DIRS=['l','r','u','d'], DEAD=15;
-  /* octant -> direction pair, indexed by round(angle / 45deg) from -4..4 */
-  const OCT={'0':['r'],'1':['r','d'],'2':['d'],'3':['l','d'],'4':['l'],
-             '-4':['l'],'-3':['l','u'],'-2':['u'],'-1':['r','u']};
-  let stickId=null, cx=0, cy=0;
+  const zone=document.getElementById('stickZone'), stick=document.getElementById('stick'),
+        nub=document.getElementById('nub'), DIRS=['l','r','u','d'],
+        DEAD=18, HYST=8;
+  /* Eight sectors as [centre deg, half-width deg, keys], y down so 90 = down.
+     Widths are deliberately uneven: running left/right is the common case and gets
+     the widest sectors, the 45 aim stays generous, straight up/down are narrower
+     but still comfortably reachable. Widths tile 360 exactly. */
+  const SEC=[[0,30,['r']], [49,19,['r','d']], [90,22,['d']], [131,19,['l','d']],
+             [180,30,['l']], [229,19,['l','u']], [270,22,['u']], [311,19,['r','u']]];
+  let stickId=null, ox=0, oy=0, sec=-1;
   const clearDirs=()=>{ for(const d of DIRS) keys[d]=false; };
+  const angDiff=(a,b)=>{ let d=(a-b)%360; if(d>180)d-=360; if(d<-180)d+=360; return d; };
+  /* hysteresis: hold the current sector until the thumb is HYST degrees past its
+     edge, so a tremor near a boundary can't strobe between two directions */
+  function sectorFor(deg){
+    if(sec>=0 && Math.abs(angDiff(deg,SEC[sec][0]))<=SEC[sec][1]+HYST) return sec;
+    for(let i=0;i<8;i++) if(Math.abs(angDiff(deg,SEC[i][0]))<=SEC[i][1]) return i;
+    return sec;
+  }
+  const ringTo=(x,y)=>{ stick.style.left=(x-RING)+'px'; stick.style.top=(y-RING)+'px'; };
+  function ringHome(){
+    const z=zone.getBoundingClientRect();
+    ringTo(z.left+RING+14, z.bottom-RING-14);
+  }
   function aim(dx,dy){
     clearDirs();
     const m=Math.hypot(dx,dy);
-    if(m<DEAD){ nub.style.transform='translate(0,0)'; return; }
-    for(const d of OCT[String(Math.round(Math.atan2(dy,dx)/(Math.PI/4)))]){ keys[d]=true; pressed[d]=true; }
+    if(m<DEAD){ sec=-1; nub.style.transform='translate(0,0)'; return; }
+    sec=sectorFor((Math.atan2(dy,dx)*180/Math.PI+360)%360);
+    if(sec>=0) for(const d of SEC[sec][2]){ keys[d]=true; pressed[d]=true; }
     const k=Math.min(1,m/44)*40/m;
     nub.style.transform='translate('+(dx*k).toFixed(1)+'px,'+(dy*k).toFixed(1)+'px)';
   }
-  stick.addEventListener('touchstart',e=>{
+  zone.addEventListener('touchstart',e=>{
     e.preventDefault(); if(state!=='PLAY') doStart();
-    const t=e.changedTouches[0], r=stick.getBoundingClientRect();
-    stickId=t.identifier; cx=r.left+r.width/2; cy=r.top+r.height/2; aim(t.clientX-cx,t.clientY-cy);
+    const t=e.changedTouches[0];
+    /* floating origin: the stick centres on wherever the thumb landed, so landing
+       is neutral — no direction until you actually move */
+    stickId=t.identifier; ox=t.clientX; oy=t.clientY; sec=-1;
+    ringTo(ox,oy); stick.classList.add('live');
+    clearDirs(); nub.style.transform='translate(0,0)';
   },{passive:false});
-  stick.addEventListener('touchmove',e=>{
+  zone.addEventListener('touchmove',e=>{
     e.preventDefault();
-    for(const t of e.changedTouches) if(t.identifier===stickId) aim(t.clientX-cx,t.clientY-cy);
+    for(const t of e.changedTouches) if(t.identifier===stickId) aim(t.clientX-ox,t.clientY-oy);
   },{passive:false});
   const dropStick=e=>{
     e.preventDefault();
     for(const t of e.changedTouches) if(t.identifier===stickId){
-      stickId=null; clearDirs(); nub.style.transform='translate(0,0)'; }
+      stickId=null; sec=-1; clearDirs();
+      nub.style.transform='translate(0,0)'; stick.classList.remove('live'); ringHome(); }
   };
-  stick.addEventListener('touchend',dropStick,{passive:false});
-  stick.addEventListener('touchcancel',dropStick,{passive:false});
+  zone.addEventListener('touchend',dropStick,{passive:false});
+  zone.addEventListener('touchcancel',dropStick,{passive:false});
+  ringHome(); addEventListener('resize',ringHome);
 
   function button(id,act){
     const el=document.getElementById(id); let id_=null;
@@ -1659,8 +1691,10 @@ function fit(){
     cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px';
     /* how far the stick reaches into the playfield, in game px (getBoundingClientRect
        flushes the layout above, and picks up the safe-area inset for free) */
-    const sr=document.getElementById('stick').getBoundingClientRect(), cr=cv.getBoundingClientRect();
-    padLeft = sr.width ? clamp(Math.round((sr.right-cr.left)/s)+14, 0, Math.round(W*0.25)) : 0;
+    /* the ring floats to the thumb now, so this can't key off a fixed rect. cover a thumb
+       resting anywhere in the left half of the activation zone (inset included) */
+    const zr=document.getElementById('stickZone').getBoundingClientRect(), cr=cv.getBoundingClientRect();
+    padLeft = zr.width ? clamp(Math.round((zr.left+zr.width*0.5+RING-cr.left)/s)+8, 0, Math.round(W*0.28)) : 0;
     return;
   }
   const pad=54;

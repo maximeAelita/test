@@ -101,6 +101,10 @@ Runners, gunners, pop-up jumpers, aiming turrets, sniper bunkers and arcing
 mortars — then the fortress gate itself: two tracking gun pods and an armoured
 core, with drones launched at you throughout.
 
+The camera follows you **both ways**, so you can double back for a turret or bunker
+you ran past. Backtracking is safe: waves you have already triggered don't re-spawn,
+and the wave ahead of you isn't discarded while you're behind it.
+
 The three boss targets sit at heights chosen so that each one is hit by 45°
 fire from a *different* standing distance. Picking your range is the fight.
 

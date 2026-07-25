@@ -79,6 +79,15 @@ Shoot down the falcon pods that fly overhead to drop a weapon crate.
 | **F** | Flame | Spiralling fireballs. |
 | **B** | Barrier | Ten seconds of invulnerability. |
 
+## Shield
+
+You carry a shield that soaks **3 hits**. Each absorb costs a pip, flashes the ring
+around you and gives a short mercy window, so a single burst can't strip all three at
+once. Stay **5 seconds without being hit** and it refills to full — the thin bar under
+the pips is that timer running.
+
+Pits are still lethal: falling kills you outright, shield or not.
+
 ## Enemies
 
 Runners, gunners, pop-up jumpers, aiming turrets, sniper bunkers and arcing

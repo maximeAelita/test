@@ -1594,8 +1594,12 @@ addEventListener('keydown',e=>{
    game logic below is untouched. multi-touch is tracked per identifier, which is
    what lets you hold a direction and fire/jump at the same time (and down+jump
    to drop through a ledge). */
-const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0 ||
-  (window.matchMedia && matchMedia('(pointer:coarse)').matches);
+/* Touch capability alone is not enough: most Windows laptops report maxTouchPoints>0
+   while being driven with a mouse. Only treat it as a touch device when the PRIMARY
+   pointer is coarse (phone/tablet), or when there is no fine pointer anywhere. */
+const mq = q => !!(window.matchMedia && matchMedia(q).matches);
+const canTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+const isTouch = canTouch && (mq('(pointer:coarse)') || !mq('(any-pointer:fine)'));
 document.body.className = isTouch ? 'touch' : 'no-touch';
 if(isTouch){
   const zone=document.getElementById('stickZone'), stick=document.getElementById('stick'),
@@ -1684,18 +1688,21 @@ if(isTouch){
 }
 
 /* ------------------------------------------------------------ mouse input */
-/* left click fires, same as Z. gated off on touch devices, where a tap already
-   means something and would otherwise arrive twice as a synthetic mouse event. */
-if(!isTouch){
-  addEventListener('mousedown',e=>{
-    if(e.button!==0) return;
-    e.preventDefault();
-    Audio_.init(); Audio_.resume();
-    if(state!=='PLAY'){ doStart(); return; }   /* click also starts / advances */
-    keys.fire=true; pressed.fire=true;
-  });
-  addEventListener('mouseup',e=>{ if(e.button===0) keys.fire=false; });
-}
+/* Left click fires, same as Z. Always registered — a machine can have both a
+   touchscreen and a mouse, and gating this on isTouch left such machines with no
+   click at all. Instead ignore the synthetic mouse events a tap generates, by
+   skipping anything that lands right after a real touch. */
+let lastTouchAt=0;
+for(const ev of ['touchstart','touchend','touchmove'])
+  addEventListener(ev,()=>{ lastTouchAt=Date.now(); },{passive:true,capture:true});
+addEventListener('mousedown',e=>{
+  if(e.button!==0 || Date.now()-lastTouchAt<700) return;
+  e.preventDefault();
+  Audio_.init(); Audio_.resume();
+  if(state!=='PLAY'){ doStart(); return; }   /* click also starts / advances */
+  keys.fire=true; pressed.fire=true;
+});
+addEventListener('mouseup',e=>{ if(e.button===0) keys.fire=false; });
 
 /* ----------------------------------------------------------------- resize */
 function fit(){

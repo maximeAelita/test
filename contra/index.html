@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CONTRA — Stage 1: Jungle</title>
+<title>CONTRA — Stages 1–2</title>
 <!-- installable as a home-screen app: manifest + apple-touch-icon live alongside this file -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -347,7 +347,8 @@ function buildSprites(){
 
 /* --------------------------------------------------------------- backdrop */
 let bgFar, bgMid, bgNear, groundCv, fgCv;
-const LVL_W = 3400;
+let LVL_W = 3400;               /* per-stage, set in buildLevel */
+let stage = 1;
 const GY = 176;                 /* ground surface y */
 
 function makeLayer(w,h,drawFn){
@@ -355,6 +356,7 @@ function makeLayer(w,h,drawFn){
   drawFn(c.getContext('2d'),w,h); return c;
 }
 function buildBackdrop(){
+  if(stage===2) return buildGorgeBackdrop();
   /* --- far : sky + moon + mountains (tile 512) --- */
   bgFar = makeLayer(512,H,(g,w,h)=>{
     const sky=g.createLinearGradient(0,0,0,h);
@@ -424,8 +426,34 @@ let plats=[], solids=[], spawns=[], pits=[];
 function G(x,w){ plats.push({x,y:GY,w,h:H-GY,type:'ground'}); }
 function LEDGE(x,y,w,type='rock'){ plats.push({x,y,w,h:8,type}); }
 
+function buildGorgeLevel(){
+  LVL_W=GORGE_W;
+  const segs=[[0,520],[576,392],[1008,300],[1348,264],[1652,420],[2112,340],[2492,500]];
+  segs.forEach(sg=>G(sg[0],sg[1]));
+  for(let i=0;i<segs.length-1;i++){
+    const a=segs[i][0]+segs[i][1], b=segs[i+1][0];
+    pits.push({x:a,w:b-a});
+  }
+  [[240,136,70],[430,108,64],[640,140,80],[790,110,74],
+   [1060,138,72],[1180,106,84],[1400,134,66],[1500,104,70],
+   [1720,140,86],[1880,108,78],[2000,136,70],
+   [2160,138,74],[2300,106,80],[2560,140,90],[2700,108,86],[2850,138,72]]
+    .forEach(l=>LEDGE(l[0],l[1],l[2]));
+  /* the dam face — the boss emplacement is set into it */
+  solids.push({x:2992,y:0,w:128,h:GY});
+  /* downstream current: each zone sits on a lip and shoves you over the edge */
+  currents=[{x:430,w:90,force:0.34},{x:576,w:80,force:-0.30},
+            {x:880,w:88,force:0.36},{x:1008,w:74,force:-0.32},
+            {x:1520,w:92,force:0.38},{x:1980,w:92,force:0.40},
+            {x:2360,w:92,force:0.42}];
+  buildGorgeTerrain();
+  buildGorgeSpawns();
+}
+
 function buildLevel(){
-  plats=[];solids=[];spawns=[];pits=[];
+  plats=[];solids=[];spawns=[];pits=[];currents=[];
+  if(stage===2){ buildGorgeLevel(); return; }
+  LVL_W=3400;
   const segs=[[0,600],[648,452],[1148,112],[1308,592],[1948,452],[2448,952]];
   segs.forEach(s=>G(s[0],s[1]));
   for(let i=0;i<segs.length-1;i++){
@@ -447,6 +475,220 @@ function buildLevel(){
 function onGroundAt(x){ /* returns platform top or null for a world x at ground level */
   for(const p of plats) if(p.type==='ground' && x>=p.x && x<=p.x+p.w) return p;
   return null;
+}
+
+
+/* ========================================================== STAGE 2: GORGE ==
+   A waterfall gorge: wet slate cliffs, cascades falling through frame, mist off
+   the chasms, and a downstream current that shoves you toward the drop. Same
+   fBm/offscreen-layer approach as the jungle, different shapes and palette. */
+const GORGE_W = 3120;
+let currents=[];                     /* {x,w,force} zones that push the player */
+
+function buildGorgeBackdrop(){
+  bgFar = makeLayer(512,H,(g,w,h)=>{
+    const sky=g.createLinearGradient(0,0,0,h);
+    sky.addColorStop(0,'#04101a'); sky.addColorStop(.34,'#0a2836');
+    sky.addColorStop(.63,'#164b58'); sky.addColorStop(.83,'#2c7873'); sky.addColorStop(1,'#63b4a4');
+    g.fillStyle=sky; g.fillRect(0,0,w,h);
+    for(let i=0;i<60;i++){ const x=(hash(i*7)*0.5+0.5)*w, y=(hash(i*13+3)*0.5+0.5)*h*0.40;
+      g.fillStyle=`rgba(206,238,255,${(0.12+Math.abs(hash(i*3))*0.40).toFixed(2)})`; g.fillRect(x|0,y|0,1,1); }
+    g.fillStyle='#08202c'; g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=4){ const y=100 - fbm(x*0.011+7)*42 - fbm(x*0.030+2)*12; g.lineTo(x,y); }
+    g.lineTo(w,h); g.closePath(); g.fill();
+    g.fillStyle='#0f3341'; g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=4){ const y=130 - fbm(x*0.015+31)*30; g.lineTo(x,y); }
+    g.lineTo(w,h); g.closePath(); g.fill();
+    for(let i=0;i<5;i++){                       /* distant cascades on the far wall */
+      const x=((hash(i*11)*0.5+0.5)*w)|0, wd=3+((hash(i*5)*0.5+0.5)*4|0);
+      g.fillStyle='rgba(184,228,238,.13)'; g.fillRect(x,116,wd,h-116);
+      g.fillStyle='rgba(232,250,255,.09)'; g.fillRect(x+1,116,1,h-116);
+    }
+    const hz=g.createLinearGradient(0,104,0,h);
+    hz.addColorStop(0,'rgba(126,204,200,0)'); hz.addColorStop(1,'rgba(150,216,214,.24)');
+    g.fillStyle=hz; g.fillRect(0,104,w,h-104);
+  });
+
+  /* --- mid : the gorge wall the falls pour down (tile 480) --- */
+  bgMid = makeLayer(480,H,(g,w,h)=>{
+    g.clearRect(0,0,w,h);
+    g.fillStyle='#123240'; g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=3){ const y=86 - fbm(x*0.020+61)*34 - fbm(x*0.06+5)*9; g.lineTo(x,y); }
+    g.lineTo(w,h); g.closePath(); g.fill();
+    for(let y=90;y<h;y+=5){                      /* wet strata */
+      const a=0.05+0.05*Math.abs(hash(y));
+      g.fillStyle=`rgba(8,20,28,${a.toFixed(3)})`; g.fillRect(0,y,w,2);
+    }
+    for(let i=0;i<3;i++){                         /* the big falls */
+      const x=60+i*168, wd=16+((hash(i*3)*0.5+0.5)*10|0);
+      g.fillStyle='rgba(196,236,246,.20)'; g.fillRect(x,72,wd,h-72);
+      g.fillStyle='rgba(236,252,255,.16)'; g.fillRect(x+2,72,3,h-72);
+      g.fillStyle='rgba(236,252,255,.10)'; g.fillRect(x+wd-4,72,2,h-72);
+      g.fillStyle='rgba(214,244,250,.13)';        /* plunge-pool bloom */
+      g.beginPath(); g.ellipse(x+wd/2,h-14,wd*1.5,11,0,0,TAU); g.fill();
+    }
+    for(let i=0;i<40;i++){                        /* moss on the ledges */
+      const x=(hash(i*17)*0.5+0.5)*w, y=96+(hash(i*23)*0.5+0.5)*(h-110);
+      g.fillStyle= hash(i*5)>0 ? 'rgba(58,116,86,.34)' : 'rgba(40,88,74,.28)';
+      g.fillRect(x|0,y|0,(3+hash(i)*3)|0,2);
+    }
+  });
+
+  /* --- near : dark rock spurs pushing in from the frame edge (tile 420) --- */
+  bgNear = makeLayer(420,H,(g,w,h)=>{
+    g.clearRect(0,0,w,h);
+    g.fillStyle='#0a1d26'; g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=3){ const y=140 - fbm(x*0.026+91)*30; g.lineTo(x,y); }
+    g.lineTo(w,h); g.closePath(); g.fill();
+    g.fillStyle='rgba(120,190,190,.06)';
+    for(let x=0;x<w;x+=7){ const y=140 - fbm(x*0.026+91)*30; g.fillRect(x,y|0,4,1); }
+  });
+}
+
+/* ground + foreground slices for the gorge */
+function buildGorgeTerrain(){
+  groundCv = makeLayer(LVL_W,H,(g)=>{
+    g.clearRect(0,0,LVL_W,H);
+    /* water in every chasm, seen from the lip */
+    for(const p of pits){
+      const grd=g.createLinearGradient(0,GY-6,0,H);
+      grd.addColorStop(0,'#0b2630'); grd.addColorStop(.42,'#0e3a46'); grd.addColorStop(1,'#1b6a72');
+      g.fillStyle=grd; g.fillRect(p.x-2,GY-4,p.w+4,H-GY+4);
+    }
+    for(const pl of plats){
+      const x=pl.x,y=pl.y,w=pl.w;
+      if(pl.type==='ground'){
+        const grd=g.createLinearGradient(0,y,0,H);
+        grd.addColorStop(0,'#5b6b70'); grd.addColorStop(.26,'#31444c'); grd.addColorStop(1,'#0d181e');
+        g.fillStyle=grd; g.fillRect(x,y,w,H-y);
+        for(let s=0;s<9;s++){                     /* slate bedding planes */
+          const yy=y+8+s*9+((hash(s*3+x)*0.5+0.5)*3|0);
+          g.fillStyle=`rgba(${s%2?150:10},${s%2?178:22},${s%2?186:28},.20)`;
+          g.fillRect(x,yy,w,1+(s%2));
+        }
+        for(let i=0;i<w;i+=3){                    /* damp mottling */
+          const v=fbm((x+i)*0.05+3);
+          g.fillStyle= v>0.45?'rgba(150,192,196,.22)': v>-0.1?'rgba(6,14,18,.42)':'rgba(96,140,148,.16)';
+          g.fillRect(x+i,y+3+((hash(i+x)*0.5+0.5)*22|0),3,2);
+        }
+        g.fillStyle='#2b4c4a'; g.fillRect(x,y,w,4);     /* wet moss cap */
+        g.fillStyle='#3d6b58'; g.fillRect(x,y,w,2);
+        g.fillStyle='#8fc9b4'; g.fillRect(x,y,w,1);
+        for(let i=0;i<w;i+=5){                    /* seepage streaks down the face */
+          if(hash(i*7+x)>0.55) continue;
+          const ln=6+((hash(i*3+x)*0.5+0.5)*16|0);
+          g.fillStyle='rgba(178,226,232,.10)'; g.fillRect(x+i,y+4,1,ln);
+        }
+        g.fillStyle='rgba(0,0,0,.55)'; g.fillRect(x,y,2,H-y); g.fillRect(x+w-2,y,2,H-y);
+      } else {
+        /* rock shelf */
+        const grd=g.createLinearGradient(0,y,0,y+10);
+        grd.addColorStop(0,'#6a7b80'); grd.addColorStop(.35,'#3a4d55'); grd.addColorStop(1,'#16232a');
+        g.fillStyle=grd; g.fillRect(x,y,w,10);
+        g.fillStyle='#9fb6ba'; g.fillRect(x,y,w,1);
+        for(let i=0;i<w;i+=2){                    /* moss along the lip */
+          const m=fbm((x+i)*0.11+9);
+          if(m>0.05){ g.fillStyle= m>0.55?'#48876a':'#2e5c50'; g.fillRect(x+i,y,2,m>0.55?2:1); }
+        }
+        g.fillStyle='rgba(0,0,0,.6)'; g.fillRect(x,y+9,w,2);
+        for(let i=4;i<w;i+=17){                   /* drips off the underside */
+          g.fillStyle='rgba(190,232,240,.20)'; g.fillRect(x+i,y+10,1,4+((hash(i+x)*0.5+0.5)*7|0));
+        }
+      }
+    }
+    /* the end wall: a dam face the boss emplacement is set into */
+    for(const sd of solids){
+      const wg=g.createLinearGradient(0,0,0,GY);
+      wg.addColorStop(0,'#37505c'); wg.addColorStop(.5,'#263a46'); wg.addColorStop(1,'#13212a');
+      g.fillStyle=wg; g.fillRect(sd.x,0,sd.w,GY);
+      for(let y=8;y<GY;y+=14) for(let x=0;x<sd.w;x+=24){
+        const ox=(y/14|0)%2?12:0;
+        g.strokeStyle='rgba(0,0,0,.5)'; g.strokeRect(sd.x+x+ox+.5,y+.5,22,12);
+        g.fillStyle='rgba(200,238,255,.06)'; g.fillRect(sd.x+x+ox+1,y+1,21,1);
+      }
+      g.fillStyle='rgba(178,226,232,.12)';       /* water weeping down the dam */
+      for(let i=6;i<sd.w;i+=13) g.fillRect(sd.x+i,0,1,GY);
+    }
+  });
+
+  fgCv = makeLayer(LVL_W,H,(g)=>{
+    g.clearRect(0,0,LVL_W,H);
+    for(let i=0;i<LVL_W/34;i++){                  /* foreground boulders */
+      const x=(i*41+hash(i*7)*26)%LVL_W, r=7+((hash(i*3)*0.5+0.5)*9|0);
+      g.fillStyle= hash(i*3)>0.25?'rgba(8,20,26,.85)':'rgba(14,32,38,.75)';
+      g.beginPath(); g.ellipse(x,H-3+r*0.2,r*1.5,r,0,0,TAU); g.fill();
+    }
+  });
+}
+
+/* stage 2 waves — tighter, more turrets on the shelves, mortars across the chasms */
+function buildGorgeSpawns(){
+  const S=(x,fn)=>spawns.push({x,fn,done:false});
+  const run=(x,y,dir)=>()=>enemies.push(mkRunner(x,y,dir));
+  const gun=(x,y,dir)=>()=>enemies.push(mkGunner(x,y,dir));
+  const jmp=(x,y)=>()=>enemies.push(mkJumper(x,y));
+  const tur=(x,y)=>()=>enemies.push(mkTurret(x,y));
+  const bnk=(x,y)=>()=>enemies.push(mkBunker(x,y));
+  const mor=(x,y)=>()=>enemies.push(mkMortar(x,y));
+  const falcon=(x,wp)=>()=>pickups.push(mkFalcon(x,wp));
+
+  S(40,run(360,GY,-1)); S(90,run(400,GY,-1)); S(130,gun(300,132,-1));
+  S(170,falcon(360,'S'));
+  S(210,run(470,GY,-1)); S(240,jmp(450)); S(280,tur(560,136));
+  S(330,run(640,GY,-1)); S(360,run(680,GY,-1)); S(400,mor(720,GY));
+  S(450,gun(820,110,-1)); S(500,bnk(880,GY)); S(540,jmp(900));
+  S(600,run(1000,GY,-1)); S(640,run(1040,GY,-1)); S(690,tur(1120,138));
+  S(740,falcon(1180,'L'));
+  S(780,gun(1240,106,-1)); S(820,mor(1300,GY)); S(870,run(1360,GY,-1));
+  S(910,jmp(1400)); S(950,bnk(1460,GY)); S(1000,run(1520,GY,-1));
+  S(1050,tur(1600,134)); S(1100,gun(1660,104,-1)); S(1150,run(1700,GY,-1));
+  S(1200,falcon(1760,'F'));
+  S(1250,mor(1840,GY)); S(1300,run(1900,GY,-1)); S(1330,run(1940,GY,-1));
+  S(1380,jmp(1980)); S(1430,bnk(2040,GY)); S(1480,tur(2120,136));
+  S(1540,gun(2180,108,-1)); S(1590,run(2240,GY,-1)); S(1640,mor(2300,GY));
+  S(1700,falcon(2360,'M'));
+  S(1750,run(2420,GY,-1)); S(1790,gun(2480,132,-1)); S(1840,jmp(2520));
+  S(1900,bnk(2580,GY)); S(1950,tur(2660,138)); S(2000,run(2720,GY,-1));
+  S(2060,mor(2780,GY)); S(2110,gun(2840,106,-1)); S(2160,run(2900,GY,-1));
+  S(2400,()=>{ startBoss(); });
+}
+
+/* Animated water over the baked cascades in bgMid. Positions/widths repeat the
+   formula the layer was painted with, so the motion lands on the painted falls. */
+const FALLS=[0,1,2].map(i=>({x:60+i*168, w:16+((hash(i*3)*0.5+0.5)*10|0)}));
+function drawFalls(g){
+  const t=frame, mx=-(cam.x*0.34)%480;
+  for(let tile=-1;tile<2;tile++) for(const f of FALLS){
+    const sx=Math.round(mx+tile*480+f.x);
+    if(sx>W||sx+f.w<0) continue;
+    for(let k=0;k<8;k++){                       /* streaks racing down the face */
+      const yy=72+((t*3.4+k*29+f.x*7)%(H-72));
+      g.fillStyle= k%3 ? 'rgba(236,252,255,.15)' : 'rgba(255,255,255,.20)';
+      g.fillRect(sx+2+((k*5)%Math.max(1,f.w-4)), yy|0, 1, 8+(k%3)*3);
+    }
+    for(let k=0;k<6;k++){                       /* spray kicking off the plunge pool */
+      const a=t*0.06+k*1.7;
+      g.fillStyle='rgba(214,244,250,.14)';
+      g.fillRect((sx+f.w/2+Math.cos(a)*f.w*0.7)|0, (H-15-Math.abs(Math.sin(a*0.7))*11)|0, 2,1);
+    }
+  }
+}
+
+/* the current: visible spray, and a shove toward the nearest drop */
+function drawCurrents(g){
+  const t=frame;
+  for(const c of currents){
+    const sx=c.x-cam.x; if(sx>W||sx+c.w<0) continue;
+    for(let i=0;i<c.w;i+=6){
+      const y=GY-6-((hash(i+c.x)*0.5+0.5)*7|0);
+      const x=sx+((i + t*(1.6+c.force*3))%c.w);
+      g.fillStyle= c.force>0 ? 'rgba(190,236,246,.30)' : 'rgba(190,236,246,.22)';
+      g.fillRect(Math.round(x),y,4,1);
+    }
+  }
+}
+function applyCurrent(p){
+  for(const c of currents) if(p.x+p.w>c.x && p.x<c.x+c.w){ p.x+=c.force; return; }
 }
 
 function buildTerrainCanvas(){
@@ -669,7 +911,8 @@ function mkPlayer(x,y){
     shield:SHIELD_MAX, regenT:0, shieldFlash:0};
 }
 function resetRun(){
-  bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];
+  if(stage!==1){ stage=1; buildBackdrop(); buildLevel(); }
+  bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];lights=[];
   score=0; lives=konamiOn?30:3; weapon='R'; boss=null; bossActive=false; bossDeadT=0;
   cam={x:0,y:0,lock:false,max:0}; shake=0; stageTime=0;
   spawns.forEach(s=>s.done=false);
@@ -763,6 +1006,7 @@ function updatePlayer(){
   if(p.barrier>0) p.barrier--;
   if(p.dropT>0) p.dropT--;
   if(p.shieldFlash>0) p.shieldFlash--;
+  if(currents.length && p.onGround) applyCurrent(p);
   /* out of combat (nothing has got through for SHIELD_REGEN frames) => back to full */
   if(p.shield<SHIELD_MAX && ++p.regenT>=SHIELD_REGEN){
     p.shield=SHIELD_MAX; p.regenT=0; p.shieldFlash=14;
@@ -983,10 +1227,12 @@ function startBoss(){
   /* Pods + core protrude from the wall face (x=3272) so shots reach them before
      the solid. Heights are chosen so each is hit at 45-deg from a distinct
      standing distance — that is the whole fight: pick your range. */
-  boss={ x:3272, pods:[
-      {x:3262,y:32, w:26,h:26,hp:16,fireT:80, dead:false,flash:0,ang:Math.PI},
-      {x:3262,y:120,w:26,h:26,hp:16,fireT:140,dead:false,flash:0,ang:Math.PI}],
-    core:{x:3266,y:76,w:22,h:22,hp:44,flash:0,dead:false}, t:0, droneT:200, dying:0 };
+  /* anchored to whatever wall this stage ends with, not a stage-1 constant */
+  const wx = solids.length ? solids[0].x : 3272;
+  boss={ x:wx, pods:[
+      {x:wx-10,y:32, w:26,h:26,hp:16,fireT:80, dead:false,flash:0,ang:Math.PI},
+      {x:wx-10,y:120,w:26,h:26,hp:16,fireT:140,dead:false,flash:0,ang:Math.PI}],
+    core:{x:wx-6,y:76,w:22,h:22,hp:44,flash:0,dead:false}, t:0, droneT:200, dying:0 };
   Audio_.tone(70,1.1,'sawtooth',0.22,0.6);
   floats.push({x:cam.x+W/2, y:74, s:'WARNING', col:'#ff4d4d', t:0, life:110, big:true});
   shake=6;
@@ -1023,7 +1269,20 @@ function updateBoss(){
   }
   if(--boss.droneT<=0){ enemies.push(mkDrone(cam.x+W-20, rnd(120,30))); boss.droneT=rndi(190,300); }
 }
+const STAGE_COUNT=2, STAGE_NAMES={1:'JUNGLE',2:'GORGE'};
 function stageClear(){ state='CLEAR'; stateT=0; player.walkOut=true; score+=5000; }
+/* carry score, lives and weapon into the next stage; only the world is rebuilt */
+function nextStage(){
+  stage++;
+  bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];lights=[];
+  boss=null; bossActive=false; bossDeadT=0;
+  cam={x:0,y:0,lock:false,max:0}; shake=0; stageTime=0;
+  buildBackdrop(); buildLevel();
+  player=mkPlayer(40,GY-24); player.inv=140;
+  state='PLAY'; stateT=0;
+  floats.push({x:W/2,y:70,s:'STAGE '+stage,col:'#9fe8ff',t:0,life:120,big:true});
+  Audio_.coin();
+}
 
 /* --------------------------------------------------------------- collision */
 function updateBullets(){
@@ -1146,11 +1405,12 @@ function drawParallax(g){
   for(let i=0;i<4;i++){
     const x=((i*130 - cam.x*0.06 - t*0.14)%(W+180))-90;
     const y=54+i*11;
-    g.fillStyle='#ffd9c0'; g.beginPath(); g.ellipse(x,y,52,6,0,0,TAU); g.fill();
+    g.fillStyle= stage===2?'#bfe6ea':'#ffd9c0'; g.beginPath(); g.ellipse(x,y,52,6,0,0,TAU); g.fill();
   }
   g.globalAlpha=1;
   const mx=-(cam.x*0.34)%480;
   for(let i=-1;i<2;i++) g.drawImage(bgMid, Math.round(mx+i*480), 0);
+  if(stage===2) drawFalls(g);
   const nx=-(cam.x*0.62)%420;
   for(let i=-1;i<2;i++) g.drawImage(bgNear, Math.round(nx+i*420), Math.round(2+Math.sin(t*0.01)*1));
 }
@@ -1216,8 +1476,13 @@ function drawLights(g){
 /* Airborne dust and embers, parallaxed at three depths. Per-mote constants are baked
    once and the alphas are quantised into a few buckets, so this costs 5 fillStyle
    changes a frame instead of 44 freshly-built colour strings. */
-const MOTE_N=44, MOTE_A=['rgba(255,214,170,.05)','rgba(255,214,170,.08)','rgba(255,214,170,.11)',
-                         'rgba(255,216,176,.14)','rgba(255,220,184,.17)'];
+const MOTE_N=44;
+const MOTE_PAL={
+  1:['rgba(255,214,170,.05)','rgba(255,214,170,.08)','rgba(255,214,170,.11)',
+     'rgba(255,216,176,.14)','rgba(255,220,184,.17)'],
+  2:['rgba(198,236,244,.06)','rgba(206,240,248,.09)','rgba(214,244,250,.13)',
+     'rgba(226,248,252,.17)','rgba(240,252,255,.21)'] };
+let MOTE_A=MOTE_PAL[1];
 const MOTES=[];
 for(let i=0;i<MOTE_N;i++) MOTES.push({
   d:0.22+(i%3)*0.24, x0:(hash(i*13)*0.5+0.5)*1600,
@@ -1225,6 +1490,7 @@ for(let i=0;i<MOTE_N;i++) MOTES.push({
 const MOTE_BUCKETS=MOTE_A.map(()=>[]);
 function drawMotes(g){
   const t=frame, span=W+40;
+  MOTE_A=MOTE_PAL[stage]||MOTE_PAL[1];
   for(const bk of MOTE_BUCKETS) bk.length=0;
   for(let i=0;i<MOTE_N;i++){
     const m=MOTES[i];
@@ -1244,15 +1510,20 @@ function drawMotes(g){
 /* colour grade: cool the shadows, warm the low sun, then a gentle vignette */
 const HAS_SOFT=(()=>{ const c=makeLayer(1,1,()=>{}).getContext('2d');
   c.globalCompositeOperation='soft-light'; return c.globalCompositeOperation==='soft-light'; })();
-let gradeCv=null, vigCv=null;
+let gradeCv=null, vigCv=null, gradeStage=1;
 function grade(g){
-  if(!gradeCv) gradeCv=makeLayer(W,H,(c)=>{
-    const lg=c.createLinearGradient(0,0,0,H);
-    lg.addColorStop(0,'rgba(96,124,200,0.60)');
-    lg.addColorStop(0.52,'rgba(255,186,128,0.16)');
-    lg.addColorStop(1,'rgba(255,146,86,0.42)');
-    c.fillStyle=lg; c.fillRect(0,0,W,H);
-  });
+  if(gradeCv&&gradeStage!==stage) gradeCv=null;
+  if(!gradeCv){
+    gradeStage=stage;
+    const stops = stage===2
+      ? [[0,'rgba(70,120,190,0.60)'],[0.52,'rgba(150,220,225,0.16)'],[1,'rgba(90,200,195,0.40)']]
+      : [[0,'rgba(96,124,200,0.60)'],[0.52,'rgba(255,186,128,0.16)'],[1,'rgba(255,146,86,0.42)']];
+    gradeCv=makeLayer(W,H,(c)=>{
+      const lg=c.createLinearGradient(0,0,0,H);
+      for(const st of stops) lg.addColorStop(st[0],st[1]);
+      c.fillStyle=lg; c.fillRect(0,0,W,H);
+    });
+  }
   if(!vigCv) vigCv=makeLayer(W,H,(c)=>{
     const vg=c.createRadialGradient(W/2,H*0.46,H*0.42,W/2,H*0.5,H*1.02);
     vg.addColorStop(0,'#ffffff'); vg.addColorStop(1,'#9a92ad');
@@ -1580,7 +1851,7 @@ function drawTitle(g){
         const px=x0+i*6*sc+c*sc, d=Math.abs(px-(cx-110+sweep));
         if(d<16){ g.fillStyle=`rgba(255,255,255,${(1-d/16)*0.55})`; g.fillRect(px,logoY+r*sc,sc,sc); } } } }
   g.restore();
-  drawTextC(g,'STAGE 1  -  JUNGLE',cx,86,'#9fb4c8',1);
+  drawTextC(g,'STAGE '+stage+'  -  '+STAGE_NAMES[stage],cx,86,'#9fb4c8',1);
   g.fillStyle='#e63946'; g.fillRect(cx-70,96,140,1);
 
   if((titleT>>4)%2===0) drawTextCSh(g,isTouch?'TAP TO START':'PRESS ENTER',cx,112,'#ffe27a','#3a1a10',2);
@@ -1633,6 +1904,7 @@ function render(){
   const cx=Math.round(cam.x);
   g.drawImage(groundCv, cx, 0, W, H, 0, 0, W, H);
   drawWater(g);
+  if(currents.length) drawCurrents(g);
   drawMotes(g);
 
   for(const f of pickups){ if(f.type==='falcon') drawFalcon(g,f); else drawItem(g,f); }
@@ -1659,11 +1931,12 @@ function render(){
   if(state==='CLEAR'){
     g.fillStyle=`rgba(4,6,12,${clamp(stateT/120,0,.72)})`; g.fillRect(0,0,W,H);
     if(stateT>40){
-      drawTextCSh(g,'STAGE 1 CLEAR',W/2,70,'#ffe27a','#5a1f14',3);
+      drawTextCSh(g,'STAGE '+stage+' CLEAR',W/2,70,'#ffe27a','#5a1f14',3);
       drawTextC(g,'SCORE  '+String(score).padStart(6,'0'),W/2,104,'#9fe8ff',1);
       drawTextC(g,'TIME   '+String(Math.floor(stageTime/60)).padStart(3,'0')+' SEC',W/2,118,'#9fe8ff',1);
       if(stateT>110 && (stateT>>4)%2===0) drawTextCSh(g,isTouch?'TAP TO GO ON':'PRESS ENTER',W/2,142,'#ffffff','#2a1a12',2);
-      drawTextC(g,'TO BE CONTINUED',W/2,H-30,'#6d7a8c',1);
+      drawTextC(g, stage<STAGE_COUNT ? 'NEXT: '+STAGE_NAMES[stage+1] : 'TO BE CONTINUED',
+        W/2,H-30,'#6d7a8c',1);
     }
   }
   if(state==='GAMEOVER'){
@@ -1697,7 +1970,9 @@ function clearPressed(){ for(const k in pressed) pressed[k]=false; }
 function doStart(){
   Audio_.init(); Audio_.resume();
   if(state==='TITLE'){ resetRun(); state='PLAY'; Audio_.coin(); }
-  else if(state==='CLEAR'&&stateT>110){ state='TITLE'; titleT=0; }
+  else if(state==='CLEAR'&&stateT>110){
+    if(stage<STAGE_COUNT) nextStage(); else { stage=1; state='TITLE'; titleT=0; }
+  }
   else if(state==='GAMEOVER'&&stateT>75){ state='TITLE'; titleT=0; }
 }
 addEventListener('keydown',e=>{

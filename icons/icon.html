@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CONTRA icon renderer</title>
+<title>IRONVINE icon renderer</title>
 <style>html,body{margin:0;background:#05060a}canvas{display:block}</style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <script>
-// Renders the CONTRA app icon at any size. Size comes from ?s=NNN (default 1024).
+// Renders the IRONVINE app icon at any size. Size comes from ?s=NNN (default 1024).
 // Full-bleed dark square (iOS applies its own corner mask) with a jungle horizon,
-// palm silhouettes, and a heavy gunmetal-to-ember "C" arc as the mark. Drawn as
-// paths only — no webfonts, so it rasterises identically in a bare container.
+// palm silhouettes, and a heavy ember chevron with a vine curling off it as the
+// mark. Drawn as paths only — no webfonts, so it rasterises the same anywhere.
 'use strict';
 const S = parseInt(new URLSearchParams(location.search).get('s') || '1024', 10);
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -89,25 +89,43 @@ function draw(){
   rr(inset, inset, S - inset*2, S - inset*2, rad); ctx.stroke();
   ctx.shadowBlur = 0;
 
-  // the mark: a heavy "C" arc, gap facing right
-  const cx = S/2, cy = S*0.485, r = px(268);
-  g = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  // the mark: a heavy chevron, with a vine curling around its right arm
+  const cx = S/2, cy = S*0.50;
+  const top = cy - px(210), bot = cy + px(215), half = px(232);
+  g = ctx.createLinearGradient(cx - half, top, cx + half, bot);
   g.addColorStop(0,    '#ffd23f');
   g.addColorStop(0.45, '#ff7a2f');
   g.addColorStop(1,    '#e03b26');
-  ctx.lineCap = 'butt';
-  ctx.lineWidth = px(150);
-  // dark backing so the arc reads against the glow
-  ctx.strokeStyle = '#05060a';
-  ctx.beginPath(); ctx.arc(cx, cy, r, TAU*0.085, TAU*0.915); ctx.stroke();
-  ctx.lineWidth = px(126);
-  ctx.strokeStyle = g;
-  ctx.shadowColor = 'rgba(255,122,47,0.85)'; ctx.shadowBlur = px(38);
-  ctx.beginPath(); ctx.arc(cx, cy, r, TAU*0.088, TAU*0.912); ctx.stroke();
-  ctx.shadowBlur = 0;
+  const chevron = (w, style, blur) => {
+    ctx.lineJoin = 'miter'; ctx.lineCap = 'butt';
+    ctx.lineWidth = w; ctx.strokeStyle = style;
+    if (blur){ ctx.shadowColor = 'rgba(255,122,47,0.85)'; ctx.shadowBlur = blur; }
+    ctx.beginPath();
+    ctx.moveTo(cx - half, top);
+    ctx.lineTo(cx, bot);
+    ctx.lineTo(cx + half, top);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  };
+  chevron(px(150), '#05060a', 0);          // dark backing so it reads against the glow
+  chevron(px(120), g, px(38));
 
-  // muzzle spark in the arc's mouth
-  const sx = cx + r * 0.96, sy = cy;
+  // vine: a tendril winding down the right arm, with two leaves
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#2f8f7a'; ctx.lineWidth = px(26);
+  ctx.beginPath();
+  ctx.moveTo(cx + half + px(26), top - px(16));
+  ctx.bezierCurveTo(cx + px(150), top + px(120),
+                    cx + px(210), cy + px(40),
+                    cx + px(96),  bot - px(6));
+  ctx.stroke();
+  ctx.fillStyle = '#3fb08c';
+  [[cx + px(196), top + px(150), px(34)], [cx + px(168), cy + px(96), px(28)]].forEach(l => {
+    ctx.beginPath(); ctx.ellipse(l[0], l[1], l[2]*1.7, l[2], -0.5, 0, TAU); ctx.fill();
+  });
+
+  // spark at the chevron's point
+  const sx = cx, sy = bot + px(6);
   ctx.fillStyle = '#fff3c4';
   ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = px(30);
   ctx.beginPath();

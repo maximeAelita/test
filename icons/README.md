@@ -1,8 +1,8 @@
-# CONTRA — app icon
+# IRONVINE — app icon
 
 The icon is generated from a single self-contained source, `icon.html`, which draws
-the mark (jungle horizon and palms, an inset red frame, a heavy ember-gradient "C"
-with a muzzle spark, CRT scanlines) on a canvas at any size via `?s=NNN`.
+the mark (jungle horizon and palms, an inset red frame, a heavy ember-gradient
+chevron with a vine curling off it, CRT scanlines) on a canvas at any size via `?s=NNN`.
 
 Everything is drawn as canvas paths — no webfonts — so it rasterises identically in a
 bare container.

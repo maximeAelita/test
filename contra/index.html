@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CONTRA — Stages 1–2</title>
+<title>IRONVINE — Stages 1–2</title>
 <!-- installable as a home-screen app: manifest + apple-touch-icon live alongside this file -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CONTRA">
+<meta name="apple-mobile-web-app-title" content="IRONVINE">
 <meta name="theme-color" content="#05060a">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -56,6 +56,8 @@
   #bJump{right:calc(env(safe-area-inset-right) + 104px);bottom:calc(env(safe-area-inset-bottom) + 20px)}
   #bMute{right:calc(env(safe-area-inset-right) + 12px);top:calc(env(safe-area-inset-top) + 12px);
     width:40px;height:40px;border-radius:10px;font-size:11px}
+  #bPause{right:calc(env(safe-area-inset-right) + 58px);top:calc(env(safe-area-inset-top) + 12px);
+    width:40px;height:40px;border-radius:10px;font-size:13px}
   /* landscape-only game: nudge the player to rotate rather than play it squashed */
   #rot{display:none;position:fixed;inset:0;z-index:9;background:#05060a;color:#8a93a8;
     align-items:center;justify-content:center;text-align:center;font-size:13px;letter-spacing:.16em;
@@ -65,20 +67,21 @@
 </head>
 <body>
 <div id="stage"><canvas id="cv" width="384" height="216"></canvas><div id="glow"></div><div id="crt"></div></div>
-<div id="foot"><b>&larr;&uarr;&darr;&rarr;</b> move / aim &nbsp;·&nbsp; <b>Z</b> / <b>click</b> fire &nbsp;·&nbsp; <b>X</b> jump &nbsp;·&nbsp; <b>Enter</b> start / pause &nbsp;·&nbsp; <b>M</b> mute</div>
+<div id="foot"><b>&larr;&uarr;&darr;&rarr;</b> move / aim &nbsp;·&nbsp; <b>Z</b> / <b>click</b> fire &nbsp;·&nbsp; <b>X</b> jump &nbsp;·&nbsp; <b>Esc</b> pause &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>M</b> mute &nbsp;·&nbsp; gamepad supported</div>
 <div id="pad">
   <div class="z" id="stickZone"></div>
   <div id="stick"><div id="nub"></div></div>
   <div class="z b" id="bFire">FIRE</div>
   <div class="z b" id="bJump">JUMP</div>
   <div class="z b" id="bMute">VOL</div>
+  <div class="z b" id="bPause">II</div>
 </div>
 <div id="rot">Rotate your device<br>to play</div>
 <script>
 "use strict";
 /* ===========================================================================
-   CONTRA — STAGE 1 : JUNGLE          a from-scratch HTML5 homage
-   everything (art, terrain, music) is generated in code. no assets.
+   IRONVINE — an original run-and-gun. Everything (art, terrain, music) is
+   generated in code; there are no asset files and no third-party content.
    =========================================================================== */
 
 const W = 384, H = 216;
@@ -259,8 +262,8 @@ function blit(g,spr,x,y,flip,white){
   }
 }
 
-const PAL_P={'.':null,k:'#160f1e',s:'#ffcf9e',S:'#c9885c',h:'#ffd94a',
-  r:'#e63946',R:'#8d1c26',w:'#ffe9ea',b:'#3566d6',B:'#1b3378'};
+const PAL_P={'.':null,k:'#141a1e',s:'#ffcf9e',S:'#c9885c',h:'#ff9c3f',
+  r:'#2f8f7a',R:'#17564c',w:'#e9fff8',b:'#4a5262',B:'#2a303c'};
 
 const P_TOP=[
 '................',
@@ -1822,6 +1825,7 @@ function drawHUD(g){
 
 /* -------------------------------------------------------------- title art */
 let titleT=0;
+const TITLE='IRONVINE';
 function drawTitle(g){
   titleT++;
   drawParallax(g);
@@ -1830,14 +1834,14 @@ function drawTitle(g){
   /* logo */
   const cx=W/2, y=44+Math.sin(titleT*0.03)*2;
   for(let i=6;i>0;i--){
-    drawTextC(g,'CONTRA',cx,y+i, `rgba(${20+i*6},${8+i*3},${16+i*4},1)`,5);
+    drawTextC(g,TITLE,cx,y+i, `rgba(${20+i*6},${8+i*3},${16+i*4},1)`,5);
   }
   /* red -> gold, going the short way round the wheel (352 -> 390 == 30) */
   const grad=(t)=>`hsl(${lerp(352,392,t)%360},${lerp(82,94,t)}%,${lerp(48,60,t)}%)`;
   /* draw logo scanline-gradient by clipping */
-  const logoY=Math.round(y), sc=5;
+  const logoY=Math.round(y), sc=TITLE.length>6?4:5;
   for(let r=0;r<7;r++){
-    const s='CONTRA'; const x0=Math.round(cx-textW(s,sc)/2);
+    const s=TITLE; const x0=Math.round(cx-textW(s,sc)/2);
     g.fillStyle=grad(r/6);
     for(let i=0;i<s.length;i++){ const gl=GLYPH[s[i]];
       for(let c=0;c<5;c++) if(gl[r][c]==='1') g.fillRect(x0+i*6*sc+c*sc, logoY+r*sc, sc, sc); }
@@ -1845,7 +1849,7 @@ function drawTitle(g){
   /* silver shine sweep */
   const sweep=((titleT*2)%260)-40;
   g.save(); g.globalCompositeOperation='lighter';
-  for(let r=0;r<7;r++){ const s='CONTRA', x0=Math.round(cx-textW(s,sc)/2);
+  for(let r=0;r<7;r++){ const s=TITLE, x0=Math.round(cx-textW(s,sc)/2);
     for(let i=0;i<s.length;i++){ const gl=GLYPH[s[i]];
       for(let c=0;c<5;c++) if(gl[r][c]==='1'){
         const px=x0+i*6*sc+c*sc, d=Math.abs(px-(cx-110+sweep));
@@ -1950,6 +1954,7 @@ function render(){
   postFX(g);
 }
 function postFX(g){
+  if(paused) drawPause(g);
   if(fade>0){ g.fillStyle=`rgba(0,0,0,${clamp(fade,0,1)})`; g.fillRect(0,0,W,H); }
 }
 
@@ -1960,6 +1965,8 @@ function loop(now){
   acc+=dt;
   const STEP=1000/60;
   let guard=0;
+  pollPad();
+  if(paused){ acc=0; render(); return; }
   while(acc>=STEP && guard<4){ acc-=STEP; update(); clearPressed(); guard++; }
   if(guard===4) acc=0;
   render();
@@ -1977,6 +1984,16 @@ function doStart(){
 }
 addEventListener('keydown',e=>{
   if(e.repeat) return;
+  const c=codeOf(e);
+  if(c==='Escape'||c==='KeyP'){ e.preventDefault(); togglePause(); return; }
+  if(c==='KeyF'){ e.preventDefault(); toggleFullscreen(); return; }
+  if(paused){
+    e.preventDefault();
+    if(c==='ArrowUp'||c==='KeyW')   pauseSel=(pauseSel+PAUSE_ITEMS.length-1)%PAUSE_ITEMS.length;
+    if(c==='ArrowDown'||c==='KeyS') pauseSel=(pauseSel+1)%PAUSE_ITEMS.length;
+    if(c==='Enter'||c==='Space'||c==='KeyZ') pauseChoose();
+    return;
+  }
   if(actionFor(e)!=='start') return;
   doStart();
 });
@@ -2069,14 +2086,114 @@ if(isTouch){
     el.addEventListener('touchcancel',up,{passive:false});
   }
   button('bFire','fire'); button('bJump','jump'); button('bMute','mute');
+  document.getElementById('bPause').addEventListener('touchstart',e=>{
+    e.preventDefault(); togglePause(); },{passive:false});
   /* tap the playfield to start / advance between screens */
-  cv.addEventListener('touchstart',e=>{ e.preventDefault(); if(state!=='PLAY') doStart(); },{passive:false});
+  cv.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(paused){                                  /* pick the menu row under the thumb */
+      const r=cv.getBoundingClientRect(), t=e.changedTouches[0];
+      const i=Math.round(((t.clientY-r.top)/(r.height/H)-86)/16);
+      if(i>=0&&i<PAUSE_ITEMS.length){ pauseSel=i; pauseChoose(); }
+      return;
+    }
+    if(state!=='PLAY') doStart();
+  },{passive:false});
   /* suppress pinch-zoom and double-tap zoom, which otherwise fight the canvas */
   for(const g of ['gesturestart','gesturechange','gestureend'])
     addEventListener(g,e=>e.preventDefault(),{passive:false});
   let lastTap=0;
   addEventListener('touchend',e=>{ const n=Date.now(); if(n-lastTap<300) e.preventDefault(); lastTap=n; },{passive:false});
   addEventListener('contextmenu',e=>e.preventDefault());
+}
+
+
+/* ---------------------------------------------------------------- gamepad */
+/* Standard-mapping pad, which is what XInput and the Steam Deck both present.
+   State is written on EDGES only, so a pad and the keyboard can be used in the
+   same session without one clobbering the other every poll. */
+const PAD_DZ=0.42;
+let padPrev={}, padWasStart=false, padIndex=null, padNav={u:false,d:false,a:false};
+addEventListener('gamepadconnected',e=>{ padIndex=e.gamepad.index; });
+addEventListener('gamepaddisconnected',()=>{ padIndex=null; padPrev={}; });
+function activePad(){
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  if(padIndex!=null && pads[padIndex] && pads[padIndex].connected) return pads[padIndex];
+  for(const g of pads) if(g && g.connected) return g;
+  return null;
+}
+function setPad(k,v){
+  if(padPrev[k]===v) return;
+  padPrev[k]=v; keys[k]=v; if(v) pressed[k]=true;
+}
+function pollPad(){
+  const gp=activePad(); if(!gp) return;
+  const B=i=>!!(gp.buttons[i] && gp.buttons[i].pressed);
+  const ax=gp.axes[0]||0, ay=gp.axes[1]||0;
+  setPad('l', B(14)||ax<-PAD_DZ);  setPad('r', B(15)||ax>PAD_DZ);
+  setPad('u', B(12)||ay<-PAD_DZ);  setPad('d', B(13)||ay>PAD_DZ);
+  setPad('fire', B(2)||B(5)||B(7));            /* X / RB / RT */
+  setPad('jump', B(0)||B(4)||B(6));            /* A / LB / LT */
+  const nu=B(12)||ay<-PAD_DZ, nd=B(13)||ay>PAD_DZ, na=B(0)||B(2);
+  if(paused){
+    if(nu&&!padNav.u) pauseSel=(pauseSel+PAUSE_ITEMS.length-1)%PAUSE_ITEMS.length;
+    if(nd&&!padNav.d) pauseSel=(pauseSel+1)%PAUSE_ITEMS.length;
+    if(na&&!padNav.a) pauseChoose();
+  }
+  padNav={u:nu,d:nd,a:na};
+  const st=B(9)||B(8);                          /* Start / Back */
+  if(st && !padWasStart){
+    if(state==='PLAY') togglePause(); else doStart();
+  }
+  padWasStart=st;
+}
+
+/* ------------------------------------------------------ pause / fullscreen */
+let paused=false, pauseSel=0;
+const PAUSE_ITEMS=['RESUME','RESTART STAGE','FULLSCREEN','QUIT TO TITLE'];
+function togglePause(){
+  if(state!=='PLAY') return;
+  paused=!paused; pauseSel=0;
+  if(!paused) clearPressed();
+  Audio_.init();
+  if(Audio_.ac){ if(paused) Audio_.ac.suspend(); else Audio_.ac.resume(); }
+}
+function toggleFullscreen(){
+  const d=document;
+  if(d.fullscreenElement || d.webkitFullscreenElement){
+    (d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d);
+  } else {
+    const el=d.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+  }
+}
+function pauseChoose(){
+  const it=PAUSE_ITEMS[pauseSel];
+  if(it==='RESUME') togglePause();
+  else if(it==='RESTART STAGE'){ paused=false; if(Audio_.ac) Audio_.ac.resume(); restartStage(); }
+  else if(it==='FULLSCREEN') toggleFullscreen();
+  else if(it==='QUIT TO TITLE'){ paused=false; if(Audio_.ac) Audio_.ac.resume();
+    stage=1; buildBackdrop(); buildLevel(); resetRun(); state='TITLE'; titleT=0; }
+}
+/* rebuild the current stage without touching score or lives */
+function restartStage(){
+  bullets=[];ebullets=[];enemies=[];pickups=[];parts=[];floats=[];lights=[];
+  boss=null; bossActive=false; bossDeadT=0;
+  cam={x:0,y:0,lock:false,max:0}; shake=0; stageTime=0;
+  buildLevel();
+  player=mkPlayer(40,GY-24); player.inv=140;
+  state='PLAY'; stateT=0;
+}
+function drawPause(g){
+  g.fillStyle='rgba(4,8,12,.74)'; g.fillRect(0,0,W,H);
+  drawTextCSh(g,'PAUSED',W/2,44,'#ffe27a','#3a1a10',3);
+  for(let i=0;i<PAUSE_ITEMS.length;i++){
+    const on=i===pauseSel, y=86+i*16;
+    if(on){ g.fillStyle='rgba(255,226,122,.13)'; g.fillRect(W/2-92,y-3,184,13); }
+    drawTextC(g,(on?'> ':'  ')+PAUSE_ITEMS[i],W/2,y,on?'#ffe27a':'#8a97a8',1);
+  }
+  drawTextC(g,'STAGE '+stage+'   SCORE '+String(score).padStart(6,'0'),W/2,H-34,'#6d7a8c',1);
+  drawTextC(g, isTouch?'TAP A LINE':'ARROWS + '+(activePad()?'A':'ENTER'), W/2,H-20,'#4e5a6b',1);
 }
 
 /* ------------------------------------------------------------ mouse input */

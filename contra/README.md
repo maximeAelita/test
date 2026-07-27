@@ -123,13 +123,22 @@ Everything is procedural. There is not a single `.png` shipped with the game
 - **Audio** is a small WebAudio synth: square/triangle/saw voices plus filtered
   noise, driven by a step sequencer running an original 64-step march. Nothing
   is sampled from the original game.
+- **Lighting** is one half-resolution buffer. Muzzle flashes, explosions, the
+  shield and every shot in flight are drawn into it as additive radial sprites,
+  then it is composited back with `lighter` — upscaling that small buffer with
+  smoothing on *is* the blur, so a single layer gives dynamic light and bloom at
+  once. Colour grading and the vignette are pre-baked canvases, and the drifting
+  motes are bucketed by alpha so a frame costs five `fillStyle` changes, not
+  forty-four.
 - **The loop** is a fixed 60 Hz accumulator with a spiral-of-death guard,
   rendered to a 384×216 canvas that is integer-scaled with
   `image-rendering: pixelated`.
 
-It's cheap to run: roughly **0.5 ms per frame** in a busy scene — boss, drones,
-thirty-plus bullets and several explosions — which is about 3% of a 60 fps
-frame budget.
+It's cheap to run. The original renderer measured roughly **0.5 ms per frame**
+in a busy scene — boss, drones, thirty-plus bullets and several explosions. The
+lighting pass roughly doubles that, and it still holds a locked 60 fps with
+headroom to spare (measured under a *software* rasteriser, which is the
+pessimistic case — real hardware composites these layers on the GPU).
 
 ## Status
 

@@ -703,6 +703,7 @@ function explode(x,y,big){
   for(let i=0;i<(big?10:5);i++) parts.push({x,y,smoke:true,vx:rnd(1,-1),vy:rnd(-.3,-1.5),
     life:rnd(70,35),t:0,r:rnd(6,2)});
   shake=Math.max(shake,big?9:4);
+  addLight(x,y,big?92:52,'rgba(255,196,116,.95)',big?26:16);
   Audio_.boom(big);
 }
 function floatText(x,y,s,col){ floats.push({x,y,s,col,t:0,life:50}); }
@@ -853,11 +854,13 @@ function fire(){
   else if(weapon==='F'){ add(p.aim,{flame:true,ph:rnd(TAU),base:p.aim}); Audio_.shootBig(); }
   else { add(p.aim); Audio_.shoot(); }
   parts.push({x:m.x,y:m.y,flash:true,life:5,t:0,a:p.aim});
+  addLight(m.x,m.y, weapon==='L'?48:36, weapon==='L'?'rgba(160,240,255,.95)':'rgba(255,240,196,.95)', 7);
   shake=Math.max(shake, weapon==='S'||weapon==='L'?1.6:0.8);
 }
 function shieldAbsorb(p){
   p.shield--; p.regenT=0; p.inv=SHIELD_HIT_INV; p.shieldFlash=14;
   Audio_.hit(); shake=Math.max(shake,3);
+  addLight(p.x+5,p.y+11,64,'rgba(127,227,255,.95)',18);
   floatText(p.x, p.y-6, p.shield>0?'SHIELD '+p.shield:'SHIELD DOWN', p.shield>0?'#7fe3ff':'#ff9a4d');
   for(let i=0;i<12;i++){ const a=i*TAU/12;
     parts.push({x:p.x+5+Math.cos(a)*13, y:p.y+11+Math.sin(a)*13,
@@ -1151,6 +1154,116 @@ function drawParallax(g){
   const nx=-(cam.x*0.62)%420;
   for(let i=-1;i<2;i++) g.drawImage(bgNear, Math.round(nx+i*420), Math.round(2+Math.sin(t*0.01)*1));
 }
+/* ----------------------------------------------------- lighting and bloom */
+/* Lights and bright pixels are accumulated into a half-resolution buffer which is
+   composited back with 'lighter'. Upscaling that small buffer with smoothing on IS
+   the blur, so a single cheap layer buys dynamic light and bloom at once. */
+const LW=W>>1, LH=H>>1, LS=0.5;
+const lightCv=makeLayer(LW,LH,()=>{}), lightCx=lightCv.getContext('2d');
+let lights=[];
+/* one radial sprite per colour, built once and reused — building gradients per light
+   per frame cost ~6x the whole previous frame budget */
+const blobCache=new Map();
+function blob(col){
+  let c=blobCache.get(col);
+  if(!c){
+    c=makeLayer(64,64,(g)=>{
+      const gr=g.createRadialGradient(32,32,0,32,32,32);
+      gr.addColorStop(0,col); gr.addColorStop(0.45,col.replace(/[\d.]+\)$/,'0.30)'));
+      gr.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=gr; g.fillRect(0,0,64,64);
+    });
+    blobCache.set(col,c);
+  }
+  return c;
+}
+function addLight(x,y,r,col,life){ lights.push({x,y,r,col,life,t:0}); }
+function updateLights(){
+  for(const L of lights) L.t++;
+  lights=lights.filter(L=>L.t<L.life);
+}
+function drawLights(g){
+  const lc=lightCx;
+  lc.clearRect(0,0,LW,LH);
+  lc.globalCompositeOperation='lighter';
+  const put=(wx,wy,r,col,a)=>{
+    const x=(wx-cam.x)*LS, y=wy*LS, rr=r*LS;
+    if(rr<=0 || x<-rr || x>LW+rr) return;
+    lc.globalAlpha=clamp(a,0,1);
+    lc.drawImage(blob(col), x-rr, y-rr, rr*2, rr*2);   /* cached sprite, not a fresh gradient */
+  };
+  for(const L of lights){ const k=1-L.t/L.life; put(L.x,L.y,L.r*(0.55+0.45*k),L.col,k*k); }
+  /* every shot in flight is a small moving lamp */
+  for(const b of bullets){
+    const L = b.kind==='L' ? [26,'rgba(139,233,255,.9)'] :
+              b.kind==='F' ? [22,'rgba(255,150,70,.9)'] : [14,'rgba(255,240,180,.8)'];
+    put(b.x+1.5,b.y+1.5,L[0],L[1],0.6);
+  }
+  for(const b of ebullets) put(b.x+b.w/2,b.y+b.h/2,13,'rgba(255,130,70,.85)',0.5);
+  if(player && !player.dead && player.shield>0)
+    put(player.x+5,player.y+11,player.shieldFlash>0?34:20,'rgba(127,227,255,.55)',
+        player.shieldFlash>0?0.75:0.28);
+  lc.globalAlpha=1; lc.globalCompositeOperation='source-over';
+
+  g.save();
+  g.globalCompositeOperation='lighter';
+  g.imageSmoothingEnabled=true;
+  g.globalAlpha=0.90; g.drawImage(lightCv,0,0,LW,LH,0,0,W,H);
+  g.globalAlpha=0.40; g.drawImage(lightCv,0,0,LW,LH,-5,-5,W+10,H+10);  /* wider, softer halo */
+  g.restore();
+}
+
+/* Airborne dust and embers, parallaxed at three depths. Per-mote constants are baked
+   once and the alphas are quantised into a few buckets, so this costs 5 fillStyle
+   changes a frame instead of 44 freshly-built colour strings. */
+const MOTE_N=44, MOTE_A=['rgba(255,214,170,.05)','rgba(255,214,170,.08)','rgba(255,214,170,.11)',
+                         'rgba(255,216,176,.14)','rgba(255,220,184,.17)'];
+const MOTES=[];
+for(let i=0;i<MOTE_N;i++) MOTES.push({
+  d:0.22+(i%3)*0.24, x0:(hash(i*13)*0.5+0.5)*1600,
+  y0:34+(hash(i*7)*0.5+0.5)*(H-64), ph:i, ph2:i*2 });
+const MOTE_BUCKETS=MOTE_A.map(()=>[]);
+function drawMotes(g){
+  const t=frame, span=W+40;
+  for(const bk of MOTE_BUCKETS) bk.length=0;
+  for(let i=0;i<MOTE_N;i++){
+    const m=MOTES[i];
+    let sx=(m.x0 - cam.x*m.d + Math.sin(t*0.004+m.ph)*16) % span;
+    if(sx<0) sx+=span;
+    const sy=m.y0 + Math.sin(t*0.011+m.ph2)*5;
+    const k=(0.5+0.5*Math.sin(t*0.02+m.ph))*(MOTE_A.length-0.001)|0;
+    MOTE_BUCKETS[k].push((sx-20)|0, sy|0);
+  }
+  for(let k=0;k<MOTE_A.length;k++){
+    const bk=MOTE_BUCKETS[k]; if(!bk.length) continue;
+    g.fillStyle=MOTE_A[k];
+    for(let j=0;j<bk.length;j+=2) g.fillRect(bk[j],bk[j+1],1,1);
+  }
+}
+
+/* colour grade: cool the shadows, warm the low sun, then a gentle vignette */
+const HAS_SOFT=(()=>{ const c=makeLayer(1,1,()=>{}).getContext('2d');
+  c.globalCompositeOperation='soft-light'; return c.globalCompositeOperation==='soft-light'; })();
+let gradeCv=null, vigCv=null;
+function grade(g){
+  if(!gradeCv) gradeCv=makeLayer(W,H,(c)=>{
+    const lg=c.createLinearGradient(0,0,0,H);
+    lg.addColorStop(0,'rgba(96,124,200,0.60)');
+    lg.addColorStop(0.52,'rgba(255,186,128,0.16)');
+    lg.addColorStop(1,'rgba(255,146,86,0.42)');
+    c.fillStyle=lg; c.fillRect(0,0,W,H);
+  });
+  if(!vigCv) vigCv=makeLayer(W,H,(c)=>{
+    const vg=c.createRadialGradient(W/2,H*0.46,H*0.42,W/2,H*0.5,H*1.02);
+    vg.addColorStop(0,'#ffffff'); vg.addColorStop(1,'#9a92ad');
+    c.fillStyle=vg; c.fillRect(0,0,W,H);
+  });
+  g.save();
+  if(HAS_SOFT){ g.globalCompositeOperation='soft-light'; g.drawImage(gradeCv,0,0); }
+  g.globalCompositeOperation='multiply'; g.drawImage(vigCv,0,0);
+  g.restore();
+}
+
 function drawWater(g){
   const t=frame;
   for(const p of pits){
@@ -1483,6 +1596,7 @@ function drawTitle(g){
 function update(){
   frame++;
   Audio_.tick();
+  updateLights();
   if(hitstop>0){ hitstop--; return; }
   if(state==='PLAY'){
     stageTime++;
@@ -1512,13 +1626,14 @@ function render(){
   const sh = shake>0.2 ? shake : 0;
   if(sh) g.translate(Math.round(rnd(sh,-sh)), Math.round(rnd(sh,-sh)));
 
-  if(state==='TITLE'){ drawTitle(g); g.restore(); postFX(g); return; }
+  if(state==='TITLE'){ drawTitle(g); drawMotes(g); grade(g); g.restore(); postFX(g); return; }
 
   drawParallax(g);
   /* terrain slice, then animated water inside the chasms */
   const cx=Math.round(cam.x);
   g.drawImage(groundCv, cx, 0, W, H, 0, 0, W, H);
   drawWater(g);
+  drawMotes(g);
 
   for(const f of pickups){ if(f.type==='falcon') drawFalcon(g,f); else drawItem(g,f); }
   for(const e of enemies) drawEnemy(g,e);
@@ -1528,6 +1643,8 @@ function render(){
   drawBullets(g);
   /* foreground foliage */
   g.globalAlpha=0.92; g.drawImage(fgCv, cx, 0, W, H, 0, 0, W, H); g.globalAlpha=1;
+  drawLights(g);
+  grade(g);
 
   for(const f of floats){
     const a=1-f.t/f.life;

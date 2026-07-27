@@ -1,0 +1,24 @@
+{
+  "name": "ironvine",
+  "productName": "IRONVINE",
+  "version": "0.1.0",
+  "description": "An original arcade run-and-gun.",
+  "main": "main.js",
+  "scripts": {
+    "prestart": "node copy-game.js",
+    "start": "electron .",
+    "predist": "node copy-game.js",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.ironvine.game",
+    "productName": "IRONVINE",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "game/**"],
+    "win": { "target": "dir", "icon": "game/icons/icon-1024.png" }
+  }
+}

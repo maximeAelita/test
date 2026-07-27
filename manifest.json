@@ -1,7 +1,7 @@
 {
-  "name": "CONTRA — Stage 1: Jungle",
+  "name": "CONTRA — Stages 1–2",
   "short_name": "CONTRA",
-  "description": "A from-scratch HTML5 run-and-gun homage to the opening stage of Contra. One file, no assets — everything generated in code.",
+  "description": "A from-scratch HTML5 run-and-gun homage to Contra. One file, no assets — everything generated in code.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

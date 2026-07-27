@@ -1,6 +1,6 @@
-# CONTRA — Stage 1: Jungle
+# CONTRA — Stages 1–2
 
-A from-scratch HTML5 run-and-gun homage to the opening stage of Konami's *Contra*.
+A from-scratch HTML5 run-and-gun homage to Konami's *Contra*.
 One file, no build step, no dependencies, **no asset files at all** — every sprite,
 every tree, every note of the soundtrack is generated in code at load time.
 
@@ -95,6 +95,16 @@ the pips is that timer running.
 
 Pits are still lethal: falling kills you outright, shield or not.
 
+## Stages
+
+| | Stage | |
+| --- | --- | --- |
+| **1** | Jungle | Night jungle under a low moon — the run to the fortress gate. |
+| **2** | Gorge | A waterfall gorge: wet slate cliffs, cascades falling through frame, chasms of black water, and a **downstream current** on the lips that shoves you toward the drop. Ends at the dam face. |
+
+Clearing a stage carries your score, lives and current weapon straight into the next
+one; only the world is rebuilt. Dying back to the title restarts at stage 1.
+
 ## Enemies
 
 Runners, gunners, pop-up jumpers, aiming turrets, sniper bunkers and arcing
@@ -120,6 +130,11 @@ Everything is procedural. There is not a single `.png` shipped with the game
   strata, grass, vines, the fortress masonry — is painted once into layered
   offscreen canvases using value-noise fBm, then scrolled at four parallax
   depths.
+- **The gorge** uses the same machinery with its own shapes: slate bedding planes,
+  moss caps, seepage streaks and drips, black chasm water, and a dam face. The
+  cascades are baked into the parallax layer, with animated streaks and plunge-pool
+  spray drawn over them each frame at the same scroll rate, so the motion lands
+  exactly on the painted falls.
 - **Audio** is a small WebAudio synth: square/triangle/saw voices plus filtered
   noise, driven by a step sequencer running an original 64-step march. Nothing
   is sampled from the original game.
@@ -142,8 +157,15 @@ pessimistic case — real hardware composites these layers on the GPU).
 
 ## Status
 
-Stage 1 is complete and finishable. `buildLevel()` and `buildSpawnTable()` are
-written to take further stages without engine changes.
+Stages 1 and 2 are complete and finishable.
+
+Adding stage 2 did need engine changes, despite an earlier note here claiming
+otherwise: `LVL_W` was a hard constant, the terrain and backdrop painters had the
+jungle's geometry and palette baked in, and clearing a stage returned to the title
+rather than advancing. Those are now per-stage — `buildLevel()`, `buildBackdrop()`,
+`buildTerrainCanvas()` and `buildSpawnTable()` dispatch on `stage`, and
+`nextStage()` rebuilds the world while leaving the run intact. A third stage means
+adding another set of those four builders plus a `STAGE_NAMES` entry.
 
 ## Legal
 

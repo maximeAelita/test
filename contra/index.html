@@ -442,7 +442,8 @@ function buildGorgeLevel(){
   [[240,136,70],[430,108,64],[640,140,80],[790,110,74],
    [1060,138,72],[1180,106,84],[1400,134,66],[1500,104,70],
    [1720,140,86],[1880,108,78],[2000,136,70],
-   [2160,138,74],[2300,106,80],[2560,140,90],[2700,108,86],[2850,138,72]]
+   [2160,138,74],[2300,106,80],[2560,140,90],[2700,108,86],[2850,138,72],
+   [2770,116,66],[2920,92,62],[2960,132,58]]
     .forEach(l=>LEDGE(l[0],l[1],l[2]));
   /* the dam face — the boss emplacement is set into it */
   solids.push({x:2992,y:0,w:128,h:GY});
@@ -1014,6 +1015,8 @@ function updatePlayer(){
   if(p.dropT>0) p.dropT--;
   if(p.shieldFlash>0) p.shieldFlash--;
   if(currents.length && p.onGround) applyCurrent(p);
+  /* the rising flood drowns like a pit — the shield does not save you */
+  if(boss && boss.kind==='sluice' && !boss.dying && p.y+PH > boss.flood) killPlayer(true);
   /* out of combat (nothing has got through for SHIELD_REGEN frames) => back to full */
   if(p.shield<SHIELD_MAX && ++p.regenT>=SHIELD_REGEN){
     p.shield=SHIELD_MAX; p.regenT=0; p.shieldFlash=14;
@@ -1229,7 +1232,63 @@ function landEnemy(e){
 function dist(a,b){ return Math.hypot((a.x+ (a.w||12)/2)-(b.x+5), (a.y+(a.h||20)/2)-(b.y+11)); }
 
 /* ------------------------------------------------------------------- boss */
+/* Stage 2's fight is not stage 1's. The gate boss is a ranging puzzle — three
+   targets at heights that each want a different standing distance. The sluice is a
+   timing puzzle instead: its gates are armoured shut and only vulnerable while open,
+   they open on staggered cycles, and every gate you break floods the gorge a little
+   higher so the floor you are standing on stops being available. */
+function startSluiceBoss(){
+  cam.lock=true; bossActive=true;
+  const wx = solids.length ? solids[0].x : LVL_W-128;
+  boss={ kind:'sluice', x:wx, t:0, droneT:260, dying:0,
+    flood:H+24, floodTo:H+24,
+    /* gates sit proud of the dam; the outflow core is recessed behind them, so
+       shots only reach it once the wrecks stop blocking the line */
+    pods:[
+      {x:wx-12,y:20, w:28,h:26,hp:12,dead:false,flash:0,shut:true,ph:0,  fireT:40},
+      {x:wx-12,y:70, w:28,h:26,hp:12,dead:false,flash:0,shut:true,ph:110,fireT:60},
+      {x:wx-12,y:120,w:28,h:26,hp:12,dead:false,flash:0,shut:true,ph:220,fireT:80}],
+    core:{x:wx-6,y:146,w:26,h:26,hp:34,flash:0,dead:false} };
+  Audio_.tone(60,1.2,'sawtooth',0.24,0.55);
+  floats.push({x:cam.x+W/2, y:74, s:'WARNING', col:'#7fe3ff', t:0, life:110, big:true});
+  shake=6;
+}
+function updateSluice(){
+  const p=player, h=hb(p), pcx=h.x+h.w/2, pcy=h.y+h.h/2;
+  const alive=boss.pods.filter(g=>!g.dead).length;
+  /* flood climbs one step per gate lost — the ledges above are the answer */
+  boss.floodTo = [H+24, 166, 144, 122][3-alive] ?? 122;
+  boss.flood += (boss.floodTo-boss.flood)*0.02;
+
+  for(const gt of boss.pods){
+    if(gt.dead) continue;
+    if(gt.flash>0) gt.flash--;
+    /* staggered cycle: ~100 frames open, ~200 shut, and it quickens as gates fall */
+    const period = 300 - (3-alive)*50;
+    const ph = (boss.t + gt.ph) % period;
+    gt.shut = ph > period*0.36;
+    if(!gt.shut && --gt.fireT<=0){          /* an open gate pours */
+      const a = Math.atan2(pcy-(gt.y+13), pcx-(gt.x+13));
+      for(let i=-1;i<=1;i++)
+        ebullets.push({x:gt.x, y:gt.y+16, w:5,h:5,
+          vx:Math.cos(a)*2.0 - 1.1 + i*0.25, vy:Math.sin(a)*1.2 - 0.9,
+          life:240, col:'#9fe8ff', arc:true, t:0});
+      Audio_.noise(0.12,0.10,900,0.5);
+      gt.fireT = rndi(34,58);
+    }
+  }
+  const c=boss.core;
+  if(c.flash>0) c.flash--;
+  if(alive===0 && boss.t%110===0){        /* outflow opens and sweeps the floor */
+    for(let i=0;i<9;i++){ const a=Math.PI + (i-4)*0.20;
+      ebullets.push({x:c.x+6,y:c.y+8,w:5,h:5,vx:Math.cos(a)*2.4,vy:Math.sin(a)*2.4,
+        life:280,col:'#7fe3ff',t:0}); }
+    Audio_.tone(120,0.24,'sawtooth',0.15,0.5);
+  }
+  if(--boss.droneT<=0){ enemies.push(mkDrone(cam.x+W-20, rnd(110,26))); boss.droneT=rndi(210,320); }
+}
 function startBoss(){
+  if(stage===2) return startSluiceBoss();
   cam.lock=true; bossActive=true;
   /* Pods + core protrude from the wall face (x=3272) so shots reach them before
      the solid. Heights are chosen so each is hit at 45-deg from a distinct
@@ -1254,6 +1313,7 @@ function updateBoss(){
     if(boss.dying>110){ boss=null; bossActive=false; stageClear(); }
     return;
   }
+  if(boss.kind==='sluice') return updateSluice();
   for(const pod of boss.pods){
     if(pod.dead) continue;
     if(pod.flash>0) pod.flash--;
@@ -1319,12 +1379,22 @@ function updateBullets(){
     /* boss */
     if(boss&&!boss.dying){
       for(const pod of boss.pods) if(!pod.dead&&hitBox(b,pod)){
+        if(pod.shut){                       /* armoured: rounds spark off */
+          if(!b.pierce) b.dead=true;
+          spark(b.x,b.y,3,'#9fb4c8',1.5,10); Audio_.tone(320,0.03,'square',0.05,0.7);
+          break;
+        }
         pod.hp-=b.dmg; pod.flash=4; if(!b.pierce)b.dead=true; spark(b.x,b.y,4,'#ffd6a0',1.6,12); Audio_.hit();
         if(pod.hp<=0){ pod.dead=true; explode(pod.x+13,pod.y+13,true); score+=1500; floatText(pod.x,pod.y,'1500','#ffd23f'); }
         break;
       }
       const c=boss.core;
       if(!b.dead&&hitBox(b,c)){
+        if(boss.kind==='sluice' && boss.pods.some(g=>!g.dead)){
+          if(!b.pierce) b.dead=true;
+          spark(b.x,b.y,3,'#9fb4c8',1.5,10); Audio_.tone(320,0.03,'square',0.05,0.7);
+          break;
+        }
         c.hp-=b.dmg; c.flash=4; if(!b.pierce)b.dead=true; spark(b.x,b.y,5,'#8be9ff',1.8,14); Audio_.hit();
         if(c.hp<=0){ boss.dying=1; score+=8000; explode(c.x+11,c.y+11,true); Audio_.boom(true); shake=12; hitstop=10; }
       }
@@ -1687,8 +1757,85 @@ function drawItem(g,f){
   drawText(g,f.wp,sx+5,sy+3,'#ffe27a',1);
   g.globalAlpha=0.25+0.2*Math.sin(frame*0.18); g.fillStyle='#fff'; g.fillRect(sx,sy,15,12); g.globalAlpha=1;
 }
+function drawSluice(g){
+  const bx=boss.x-cam.x, alive=boss.pods.filter(gt=>!gt.dead).length;
+  /* dam buttress the gates are set into */
+  g.fillStyle='#25333c'; g.fillRect(bx-16,8,20,164);
+  g.fillStyle='#37505c'; g.fillRect(bx-16,8,20,3);
+  g.fillStyle='#131c22'; g.fillRect(bx-16,169,20,3);
+
+  for(const gt of boss.pods){
+    const px=gt.x-cam.x, py=gt.y;
+    if(gt.dead){
+      g.fillStyle='#0d161b'; g.fillRect(px,py,28,26);
+      /* a broken gate pours freely */
+      for(let k=0;k<5;k++){
+        const yy=py+18+((frame*3.6+k*23)%(H-py-18));
+        g.fillStyle='rgba(214,244,250,.30)'; g.fillRect(px+5+k*4, yy|0, 1, 7);
+      }
+      if(frame%9<4){ g.fillStyle='#7fe3ff'; g.fillRect(px+7+rndi(0,12),py+6+rndi(0,10),3,3); }
+      continue;
+    }
+    const wf=gt.flash>0, open=!gt.shut;
+    g.fillStyle=wf?'#ffdcd0':(open?'#2a3d47':'#55636e'); g.fillRect(px,py,28,26);
+    g.fillStyle=wf?'#ffdcd0':(open?'#3d5866':'#74838f'); g.fillRect(px+1,py+1,26,2);
+    g.fillStyle='#121a20'; g.fillRect(px+1,py+23,26,2);
+    if(open){
+      /* the sluice is up: dark mouth, water pouring, and it can be hurt */
+      g.fillStyle='#08121a'; g.fillRect(px+3,py+5,22,18);
+      for(let k=0;k<6;k++){
+        const yy=py+8+((frame*4.2+k*19)%(H-py-8));
+        g.fillStyle= k%2?'rgba(236,252,255,.34)':'rgba(159,232,255,.26)';
+        g.fillRect(px+4+k*4, yy|0, 1, 8);
+      }
+      g.fillStyle='rgba(127,227,255,.5)'; g.fillRect(px,py-2,28,2);
+    } else {
+      /* shut: armour plate with rivets, shots spark off it */
+      for(let i=0;i<8;i++) g.fillStyle='#8a97a4', g.fillRect(px+3+(i%4)*7, py+4+((i/4)|0)*16, 2,2);
+      g.fillStyle='#39454f'; g.fillRect(px+3,py+11,22,3);
+    }
+  }
+  /* outflow core at the base — sealed until every gate is gone */
+  const c=boss.core, cx=c.x-cam.x, sealed=alive>0, pulse=0.5+0.5*Math.sin(frame*0.14);
+  g.fillStyle=c.flash>0?'#ffdcd0':'#2b3a44'; g.fillRect(cx-3,c.y-3,32,32);
+  g.fillStyle='#7f909e'; g.fillRect(cx-3,c.y-3,32,2);
+  if(sealed){
+    g.fillStyle='#1a252c'; g.fillRect(cx,c.y,26,26);
+    for(let i=0;i<3;i++){ g.fillStyle='#4a5a66'; g.fillRect(cx+2,c.y+4+i*8,22,4); }
+    g.fillStyle='rgba(159,232,255,.20)'; g.fillRect(cx+2,c.y+2,22,1);
+  } else {
+    g.fillStyle='#08121a'; g.fillRect(cx,c.y,26,26);
+    const hpr=clamp(c.hp/34,0,1), b0=Math.round(120+120*hpr);
+    g.beginPath(); g.fillStyle=`rgba(90,${b0},255,${0.30+0.22*pulse})`; g.arc(cx+13,c.y+13,12,0,TAU); g.fill();
+    g.beginPath(); g.fillStyle=`rgba(140,${b0},255,${0.72+0.28*pulse})`; g.arc(cx+13,c.y+13,8,0,TAU); g.fill();
+    g.beginPath(); g.fillStyle=`rgba(236,252,255,${0.55+0.45*pulse})`; g.arc(cx+13,c.y+13,3.6,0,TAU); g.fill();
+  }
+
+  /* the flood */
+  if(boss.flood < H){
+    const fy=Math.round(boss.flood);
+    g.fillStyle='rgba(20,80,96,.55)'; g.fillRect(0,fy,W,H-fy);
+    g.fillStyle='rgba(159,232,255,.30)'; g.fillRect(0,fy,W,1);
+    for(let i=0;i<W;i+=7){
+      const yy=fy+Math.sin((i+frame*2.2)*0.09)*1.5;
+      g.fillStyle='rgba(214,244,250,.22)'; g.fillRect(i,Math.round(yy),4,1);
+    }
+  }
+
+  if(!boss.dying){
+    const total=boss.pods.reduce((a,gt)=>a+Math.max(0,gt.hp),0)+Math.max(0,c.hp);
+    const frac=clamp(total/70,0,1);
+    g.fillStyle='rgba(6,8,12,.72)'; g.fillRect(W-132,14,128,9);
+    drawText(g,'SLUICE',W-129,16,'#9fe8ff',1);
+    g.fillStyle='#14323a'; g.fillRect(W-90,17,84,3);
+    g.fillStyle= frac>0.5?'#7fe3ff': frac>0.22?'#ffb02e':'#ff2f4d';
+    g.fillRect(W-90,17,Math.round(84*frac),3);
+    g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(W-90,17,Math.round(84*frac),1);
+  }
+}
 function drawBoss(g){
   if(!boss) return;
+  if(boss.kind==='sluice') return drawSluice(g);
   const bx=boss.x-cam.x;
   /* mounting spine bolted to the gate face */
   g.fillStyle='#2a2f38'; g.fillRect(bx-8,20,12,140);

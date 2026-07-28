@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production Lines 1–12 · Issue Tracker</title>
+<!-- ARTIFACT-BODY-START -->
+<style>
+:root{
+  --ground:#EEF1F4; --surface:#FFFFFF; --surface-2:#F7F9FA; --raised:#FFFFFF;
+  --ink:#12181D; --ink-2:#47535E; --muted:#7A8894;
+  --rule:#D5DCE2; --rule-soft:#E4E9ED;
+  --accent:#0E6E7D; --accent-hover:#0B5B68; --accent-ink:#FFFFFF; --accent-wash:#E2F0F2;
+  --st-down:#C23B2E; --st-major:#B57312; --st-minor:#3D6E9E; --st-ok:#2E7D5B;
+  --st-down-wash:#FAE7E4; --st-major-wash:#F7EEDC; --st-minor-wash:#E6EEF6; --st-ok-wash:#E2F0E9;
+  --shadow:0 1px 2px rgba(18,24,29,.06), 0 1px 1px rgba(18,24,29,.04);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ground:#0F1519; --surface:#182126; --surface-2:#1D272D; --raised:#202B31;
+    --ink:#E6EDF2; --ink-2:#AAB9C3; --muted:#75868F;
+    --rule:#2B383F; --rule-soft:#232F35;
+    --accent:#35A9B8; --accent-hover:#4FBECC; --accent-ink:#08181B; --accent-wash:#163236;
+    --st-down:#E4695C; --st-major:#D99A3C; --st-minor:#6DA5D2; --st-ok:#54B283;
+    --st-down-wash:#3A211E; --st-major-wash:#382C18; --st-minor-wash:#1D2B37; --st-ok-wash:#1A2E26;
+    --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="light"]{
+  --ground:#EEF1F4; --surface:#FFFFFF; --surface-2:#F7F9FA; --raised:#FFFFFF;
+  --ink:#12181D; --ink-2:#47535E; --muted:#7A8894;
+  --rule:#D5DCE2; --rule-soft:#E4E9ED;
+  --accent:#0E6E7D; --accent-hover:#0B5B68; --accent-ink:#FFFFFF; --accent-wash:#E2F0F2;
+  --st-down:#C23B2E; --st-major:#B57312; --st-minor:#3D6E9E; --st-ok:#2E7D5B;
+  --st-down-wash:#FAE7E4; --st-major-wash:#F7EEDC; --st-minor-wash:#E6EEF6; --st-ok-wash:#E2F0E9;
+  --shadow:0 1px 2px rgba(18,24,29,.06), 0 1px 1px rgba(18,24,29,.04);
+}
+:root[data-theme="dark"]{
+  --ground:#0F1519; --surface:#182126; --surface-2:#1D272D; --raised:#202B31;
+  --ink:#E6EDF2; --ink-2:#AAB9C3; --muted:#75868F;
+  --rule:#2B383F; --rule-soft:#232F35;
+  --accent:#35A9B8; --accent-hover:#4FBECC; --accent-ink:#08181B; --accent-wash:#163236;
+  --st-down:#E4695C; --st-major:#D99A3C; --st-minor:#6DA5D2; --st-ok:#54B283;
+  --st-down-wash:#3A211E; --st-major-wash:#382C18; --st-minor-wash:#1D2B37; --st-ok-wash:#1A2E26;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;text-wrap:balance;letter-spacing:-.015em;font-weight:650}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- shell ---- */
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px 72px}
+.topbar{background:var(--surface);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:20}
+.topbar-in{max-width:1160px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.mark{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.mark h1{font-size:17px}
+.mark .rng{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:3px;letter-spacing:.06em}
+.mark .sub{font-size:12px;color:var(--muted)}
+
+.btn{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:8px 14px;font-size:14px;font-weight:550;cursor:pointer;transition:background .12s,border-color .12s}
+.btn:hover{background:var(--surface-2);border-color:var(--muted)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-sm{padding:5px 10px;font-size:13px}
+
+/* ---- status strip ---- */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0 30px}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.tile .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:30px;line-height:1;font-weight:600;letter-spacing:-.02em}
+.tile .foot{font-size:12px;color:var(--muted)}
+.tile.crit .v{color:var(--st-down)}
+
+/* ---- section head ---- */
+.sec{margin:0 0 14px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.sec h2{font-size:15px}
+.sec .note{font-size:12.5px;color:var(--muted);margin-left:auto}
+
+/* ---- line board ---- */
+.board{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:34px}
+.line{position:relative;background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:11px 12px 10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:7px;box-shadow:var(--shadow);transition:border-color .12s,transform .12s}
+.line:hover{border-color:var(--muted);transform:translateY(-1px)}
+.line[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.line .id{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.line .nm{font-size:11.5px;color:var(--muted);line-height:1.35;min-height:2.7em}
+.line .cnt{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between;align-items:center}
+.sevbar{display:flex;gap:2px;height:4px;border-radius:2px;overflow:hidden;background:var(--rule-soft)}
+.sevbar i{display:block;height:100%;border-radius:2px}
+
+/* ---- report panel ---- */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:34px;overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule-soft)}
+.panel-head h2{font-size:15px}
+.panel-head p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.panel-body{padding:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.f{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.f label{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.f label .req{color:var(--st-down)}
+.f input,.f select,.f textarea{background:var(--surface-2);border:1px solid var(--rule);border-radius:var(--r);padding:8px 10px;font-size:14px;width:100%}
+.f textarea{resize:vertical;min-height:76px;line-height:1.5}
+.f .hint{font-size:11.5px;color:var(--muted)}
+.form-actions{display:flex;align-items:center;gap:12px;padding-top:4px}
+.form-actions .msg{font-size:13px;color:var(--muted)}
+
+/* ---- queue ---- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filters select,.filters input{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:7px 10px;font-size:13.5px}
+.filters input[type=search]{min-width:210px}
+.filters .spacer{margin-left:auto}
+.tablewrap{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:11px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--surface-2)}
+td{padding:11px 12px;border-bottom:1px solid var(--rule-soft);font-size:13.5px;vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.id{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+td.ln{font-family:var(--mono);font-weight:600;white-space:nowrap}
+td.ttl{min-width:260px}
+td.ttl .d{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+td.age{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+td.age.over{color:var(--st-down);font-weight:600}
+td select{background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:4px 6px;font-size:12.5px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:3px;white-space:nowrap;font-weight:600}
+.chip .dot{width:6px;height:6px}
+.s-down{background:var(--st-down-wash);color:var(--st-down)}
+.s-major{background:var(--st-major-wash);color:var(--st-major)}
+.s-minor{background:var(--st-minor-wash);color:var(--st-minor)}
+.s-ok{background:var(--st-ok-wash);color:var(--st-ok)}
+.s-idle{background:var(--rule-soft);color:var(--muted)}
+.kind{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+.empty{padding:44px 16px;text-align:center;color:var(--muted);font-size:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 0;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+footer code{font-family:var(--mono);font-size:11.5px;background:var(--surface);border:1px solid var(--rule-soft);padding:1px 5px;border-radius:3px;color:var(--ink-2)}
+.linkish{background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:12.5px}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--ground);padding:10px 18px;border-radius:var(--r);font-size:13.5px;font-weight:550;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:900px){
+  .board{grid-template-columns:repeat(4,1fr)}
+  .strip{grid-template-columns:repeat(2,1fr)}
+  .grid3{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .board{grid-template-columns:repeat(2,1fr)}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .filters input[type=search]{min-width:0;flex:1}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="mark">
+      <h1>Production Lines</h1>
+      <span class="rng num">01–12</span>
+      <span class="sub">Issue &amp; request tracker</span>
+    </div>
+    <button class="btn btn-sm" id="exportBtn" type="button">Export CSV</button>
+    <button class="btn btn-primary" id="reportBtn" type="button">Report an issue</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="strip" aria-label="Current status">
+    <div class="tile"><span class="eyebrow">Open</span><span class="v num" id="kOpen">0</span><span class="foot">New, triaged, in progress</span></div>
+    <div class="tile crit"><span class="eyebrow">Line down</span><span class="v num" id="kDown">0</span><span class="foot" id="kDownFoot">No lines stopped</span></div>
+    <div class="tile"><span class="eyebrow">Oldest open</span><span class="v num" id="kAge">0</span><span class="foot" id="kAgeFoot">days</span></div>
+    <div class="tile"><span class="eyebrow">Closed · 7 days</span><span class="v num" id="kDone">0</span><span class="foot">Resolved or closed</span></div>
+  </section>
+
+  <div class="sec">
+    <h2>Line board</h2>
+    <span class="eyebrow">Select a line to filter the queue</span>
+    <span class="note" id="boardNote"></span>
+  </div>
+  <div class="board" id="board"></div>
+
+  <section class="panel" id="panel" hidden>
+    <div class="panel-head">
+      <div>
+        <h2 id="formTitle">Report an issue</h2>
+        <p>Goes straight to the queue below. Line leads see it on their next refresh.</p>
+      </div>
+      <button class="btn btn-sm" id="closeForm" type="button" style="margin-left:auto">Cancel</button>
+    </div>
+    <div class="panel-body">
+      <form id="form" novalidate>
+        <div class="grid3">
+          <div class="f">
+            <label for="fKind">Ticket type <span class="req">*</span></label>
+            <select id="fKind" required>
+              <option value="Issue">Issue — something is wrong now</option>
+              <option value="Request">Request — work needed later</option>
+            </select>
+          </div>
+          <div class="f">
+            <label for="fLine">Line <span class="req">*</span></label>
+            <select id="fLine" required></select>
+          </div>
+          <div class="f">
+            <label for="fSev">Severity <span class="req">*</span></label>
+            <select id="fSev" required>
+              <option value="S1">S1 — Line down</option>
+              <option value="S2" selected>S2 — Major, running degraded</option>
+              <option value="S3">S3 — Minor</option>
+              <option value="S4">S4 — Cosmetic / backlog</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="f">
+            <label for="fCat">Category <span class="req">*</span></label>
+            <select id="fCat" required></select>
+          </div>
+          <div class="f">
+            <label for="fBy">Reported by <span class="req">*</span></label>
+            <input id="fBy" type="text" placeholder="Name or badge number" required>
+          </div>
+        </div>
+        <div class="f">
+          <label for="fTitle">Summary <span class="req">*</span></label>
+          <input id="fTitle" type="text" maxlength="120" placeholder="e.g. Infeed conveyor stalling under load" required>
+          <span class="hint">One line. What is happening, on what equipment.</span>
+        </div>
+        <div class="f">
+          <label for="fDesc">Details</label>
+          <textarea id="fDesc" placeholder="When it started, what you already tried, part numbers, error codes."></textarea>
+        </div>
+        <div class="grid2">
+          <div class="f">
+            <label for="fShift">Shift</label>
+            <select id="fShift"><option>A — Days</option><option>B — Afters</option><option>C — Nights</option></select>
+          </div>
+          <div class="f">
+            <label for="fDown">Downtime so far (minutes)</label>
+            <input id="fDown" type="number" min="0" step="5" value="0">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Submit ticket</button>
+          <span class="msg" id="formMsg" role="status"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="sec">
+    <h2>Ticket queue</h2>
+    <span class="note num" id="qCount"></span>
+  </div>
+
+  <div class="filters">
+    <select id="fltLine"><option value="">All lines</option></select>
+    <select id="fltStatus">
+      <option value="open">Open only</option>
+      <option value="">Any status</option>
+      <option>New</option><option>Triaged</option><option>In Progress</option>
+      <option>Waiting on Parts</option><option>Resolved</option><option>Closed</option>
+    </select>
+    <select id="fltSev"><option value="">Any severity</option><option value="S1">S1 — Line down</option><option value="S2">S2 — Major</option><option value="S3">S3 — Minor</option><option value="S4">S4 — Cosmetic</option></select>
+    <select id="fltKind"><option value="">Issues &amp; requests</option><option value="Issue">Issues only</option><option value="Request">Requests only</option></select>
+    <input type="search" id="fltQ" placeholder="Search summary, detail, reporter">
+    <span class="spacer"></span>
+    <button class="btn btn-sm" id="clearFlt" type="button">Clear filters</button>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <caption class="eyebrow" style="text-align:left;padding:10px 12px 0;caption-side:top">Ticket queue — severity, status and age for every line</caption>
+      <thead>
+        <tr>
+          <th scope="col">Ticket</th><th scope="col">Line</th><th scope="col">Summary</th>
+          <th scope="col">Severity</th><th scope="col">Status</th><th scope="col">Reported by</th>
+          <th scope="col">Age</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No tickets match these filters.</div>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot" style="background:var(--st-down)"></i> S1 Line down</span>
+    <span><i class="dot" style="background:var(--st-major)"></i> S2 Major</span>
+    <span><i class="dot" style="background:var(--st-minor)"></i> S3 Minor</span>
+    <span><i class="dot" style="background:var(--muted)"></i> S4 Cosmetic</span>
+    <span><i class="dot" style="background:var(--st-ok)"></i> Resolved / closed</span>
+  </div>
+
+  <footer>
+    <span>Prototype data is stored in this browser only, under <code>plit.v1</code>.</span>
+    <span>Columns match the <code>Line Issues</code> SharePoint list — exported CSV imports straight into it.</span>
+    <button class="linkish" id="resetBtn" type="button">Reset to sample data</button>
+  </footer>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+var LINES = [
+  {id:"L01", name:"Bottle infeed & rinser",   area:"Wet end"},
+  {id:"L02", name:"Filler A",                 area:"Wet end"},
+  {id:"L03", name:"Filler B",                 area:"Wet end"},
+  {id:"L04", name:"Capper & torque check",    area:"Wet end"},
+  {id:"L05", name:"Tunnel pasteuriser",       area:"Thermal"},
+  {id:"L06", name:"Dryer & air knife",        area:"Thermal"},
+  {id:"L07", name:"Labeller 1",               area:"Dry end"},
+  {id:"L08", name:"Labeller 2",               area:"Dry end"},
+  {id:"L09", name:"Vision & reject station",  area:"Dry end"},
+  {id:"L10", name:"Case packer",              area:"Packing"},
+  {id:"L11", name:"Palletiser",               area:"Packing"},
+  {id:"L12", name:"Stretch wrap & despatch",  area:"Packing"}
+];
+
+var CATEGORIES = ["Mechanical","Electrical","Controls / PLC","Quality defect","Safety","Material supply","Utilities","Changeover","Housekeeping","Other"];
+var STATUSES   = ["New","Triaged","In Progress","Waiting on Parts","Resolved","Closed"];
+var OPEN       = ["New","Triaged","In Progress","Waiting on Parts"];
+var SEV_CLASS  = {S1:"s-down", S2:"s-major", S3:"s-minor", S4:"s-idle"};
+var SEV_LABEL  = {S1:"S1 Line down", S2:"S2 Major", S3:"S3 Minor", S4:"S4 Cosmetic"};
+var SEV_VAR    = {S1:"var(--st-down)", S2:"var(--st-major)", S3:"var(--st-minor)", S4:"var(--muted)"};
+var KEY = "plit.v1";
+var DAY = 86400000;
+
+function daysAgo(n){ return new Date(Date.now() - n*DAY).toISOString(); }
+
+function seed(){
+  return [
+    {id:1041, kind:"Issue",   line:"L03", title:"Filler B head 7 dripping between cycles",     desc:"Product on the conveyor after every index. Seal kit suspected.", cat:"Mechanical",    sev:"S1", status:"In Progress",      by:"J. Okafor",  shift:"B — Afters", down:95, created:daysAgo(0.4)},
+    {id:1040, kind:"Issue",   line:"L09", title:"Vision station false-rejecting clear labels", desc:"Reject rate 6% against a 0.5% baseline. Lighting drifted after the lamp change.", cat:"Controls / PLC", sev:"S2", status:"Triaged",   by:"M. Bianchi", shift:"A — Days",   down:0,  created:daysAgo(1.2)},
+    {id:1039, kind:"Issue",   line:"L06", title:"Air knife pressure drops on changeover",      desc:"Compressor recovery is slow when both dryers call at once. Sequenced the calls.", cat:"Utilities", sev:"S3", status:"Resolved", by:"A. Novak", shift:"A — Days", down:15, created:daysAgo(1.9)},
+    {id:1038, kind:"Issue",   line:"L11", title:"Palletiser E-stop reset needs two attempts",  desc:"Safety relay latching late. Raised with the safety lead.", cat:"Safety",        sev:"S2", status:"Waiting on Parts", by:"D. Rahman", shift:"C — Nights", down:40, created:daysAgo(2.6)},
+    {id:1037, kind:"Request", line:"L07", title:"Add quick-release guard on labeller 1 reel",  desc:"Reel changes take 11 minutes; a quick-release would cut it to about 4.", cat:"Mechanical", sev:"S4", status:"New",       by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(3.1)},
+    {id:1036, kind:"Issue",   line:"L02", title:"Filler A fill volume drifting high",          desc:"Recalibrated flowmeters, verified across a full shift.", cat:"Quality defect", sev:"S2", status:"Resolved", by:"M. Bianchi", shift:"A — Days", down:60, created:daysAgo(3.8)},
+    {id:1035, kind:"Issue",   line:"L05", title:"Pasteuriser zone 3 running 4°C under target", desc:"Steam valve response slow from cold start.", cat:"Utilities",  sev:"S2", status:"In Progress", by:"A. Novak",  shift:"A — Days",   down:0,  created:daysAgo(4.4)},
+    {id:1034, kind:"Issue",   line:"L01", title:"Rinser infeed star wheel chattering",         desc:"Noise under full infeed pressure, no bottle loss yet.", cat:"Mechanical", sev:"S3", status:"New",   by:"P. Osei",    shift:"B — Afters", down:0,  created:daysAgo(5.3)},
+    {id:1033, kind:"Issue",   line:"L04", title:"Capper torque out of spec on 500ml",          desc:"Head 3 chuck worn. Replaced and verified across 200 caps.", cat:"Mechanical", sev:"S2", status:"Closed", by:"J. Okafor", shift:"C — Nights", down:75, created:daysAgo(6.1)},
+    {id:1032, kind:"Request", line:"L12", title:"Second wrap film holder at despatch",         desc:"Operators walk to the store mid-shift for film.", cat:"Material supply", sev:"S4", status:"Triaged", by:"K. Lindqvist", shift:"C — Nights", down:0, created:daysAgo(6.5)},
+    {id:1031, kind:"Issue",   line:"L10", title:"Case packer glue head stringing",             desc:"Cleaned twice this week, returns within four hours.", cat:"Quality defect", sev:"S3", status:"In Progress", by:"R. Duarte", shift:"B — Afters", down:25, created:daysAgo(7.8)},
+    {id:1030, kind:"Request", line:"L08", title:"Label reel low-level sensor for labeller 2",  desc:"Line 7 has one; line 8 does not. Would stop the run-out stoppages.", cat:"Controls / PLC", sev:"S4", status:"Closed", by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(16.5)}
+  ];
+}
+
+var tickets = load();
+var selectedLine = "";
+
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(raw){ var p = JSON.parse(raw); if(Array.isArray(p) && p.length) return p; }
+  }catch(e){}
+  return seed();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(tickets)); }catch(e){} }
+
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function lineName(id){ var l = LINES.filter(function(x){return x.id===id;})[0]; return l ? l.name : id; }
+function isOpen(t){ return OPEN.indexOf(t.status) > -1; }
+function ageDays(t){ return (Date.now() - new Date(t.created).getTime()) / DAY; }
+function fmtAge(d){ if(d < 1) return Math.max(1, Math.round(d*24)) + "h"; return Math.round(d) + "d"; }
+
+function toast(msg){
+  var t = el("toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove("on"); }, 2600);
+}
+
+/* ---------- summary ---------- */
+function renderKpis(){
+  var open = tickets.filter(isOpen);
+  var down = open.filter(function(t){ return t.sev === "S1"; });
+  var downLines = down.map(function(t){ return t.line; }).filter(function(v,i,a){ return a.indexOf(v)===i; });
+  var oldest = open.reduce(function(m,t){ return Math.max(m, ageDays(t)); }, 0);
+  var recent = tickets.filter(function(t){ return !isOpen(t) && ageDays(t) <= 7; });
+
+  el("kOpen").textContent = open.length;
+  el("kDown").textContent = down.length;
+  el("kDownFoot").textContent = downLines.length ? downLines.join(", ") + " stopped" : "No lines stopped";
+  el("kAge").textContent = open.length ? Math.round(oldest) : 0;
+  el("kAgeFoot").textContent = open.length ? "days · " + (open.slice().sort(function(a,b){ return ageDays(b)-ageDays(a); })[0].line) : "days";
+  el("kDone").textContent = recent.length;
+}
+
+/* ---------- line board ---------- */
+function renderBoard(){
+  var board = el("board");
+  board.innerHTML = "";
+  var worstOverall = 0;
+
+  LINES.forEach(function(L){
+    var mine = tickets.filter(function(t){ return t.line === L.id && isOpen(t); });
+    var counts = {S1:0,S2:0,S3:0,S4:0};
+    mine.forEach(function(t){ counts[t.sev]++; });
+    var state = counts.S1 ? "down" : counts.S2 ? "major" : mine.length ? "minor" : "ok";
+    if(counts.S1) worstOverall++;
+
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "line";
+    b.setAttribute("aria-pressed", selectedLine === L.id ? "true" : "false");
+    b.setAttribute("aria-label", L.id + " " + L.name + " — " + mine.length + " open, status " + state);
+
+    var bars = ["S1","S2","S3","S4"].map(function(s){
+      return counts[s] ? '<i style="flex:' + counts[s] + ';background:' + SEV_VAR[s] + '"></i>' : "";
+    }).join("");
+
+    b.innerHTML =
+      '<span class="id"><i class="dot" style="background:var(--st-' + (state==="major"?"major":state==="down"?"down":state==="minor"?"minor":"ok") + ')"></i>' + L.id + '</span>' +
+      '<span class="nm">' + esc(L.name) + '</span>' +
+      '<span class="sevbar">' + (bars || '<i style="flex:1;background:var(--rule-soft)"></i>') + '</span>' +
+      '<span class="cnt"><span>' + mine.length + ' open</span><span class="chip ' +
+        (state==="down"?"s-down":state==="major"?"s-major":state==="minor"?"s-minor":"s-ok") + '">' +
+        (state==="down"?"Down":state==="major"?"Degraded":state==="minor"?"Watch":"Running") + '</span></span>';
+
+    b.addEventListener("click", function(){
+      selectedLine = (selectedLine === L.id) ? "" : L.id;
+      el("fltLine").value = selectedLine;
+      renderBoard(); renderTable();
+    });
+    board.appendChild(b);
+  });
+
+  el("boardNote").textContent = worstOverall
+    ? worstOverall + " line" + (worstOverall>1?"s":"") + " stopped"
+    : "All 12 lines running";
+}
+
+/* ---------- queue ---------- */
+function filtered(){
+  var st = el("fltStatus").value, sev = el("fltSev").value,
+      kind = el("fltKind").value, q = el("fltQ").value.trim().toLowerCase();
+
+  return tickets.filter(function(t){
+    if(selectedLine && t.line !== selectedLine) return false;
+    if(st === "open" && !isOpen(t)) return false;
+    if(st && st !== "open" && t.status !== st) return false;
+    if(sev && t.sev !== sev) return false;
+    if(kind && t.kind !== kind) return false;
+    if(q && (t.title + " " + t.desc + " " + t.by + " " + t.cat).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  }).sort(function(a,b){
+    var ao = isOpen(a) ? 0 : 1, bo = isOpen(b) ? 0 : 1;
+    if(ao !== bo) return ao - bo;
+    if(a.sev !== b.sev) return a.sev.localeCompare(b.sev);
+    return new Date(a.created) - new Date(b.created);
+  });
+}
+
+function renderTable(){
+  var list = filtered(), body = el("rows");
+  body.innerHTML = "";
+
+  list.forEach(function(t){
+    var age = ageDays(t);
+    var overdue = isOpen(t) && ((t.sev === "S1" && age > 0.5) || (t.sev === "S2" && age > 3) || age > 14);
+    var tr = document.createElement("tr");
+
+    var statusSel = '<select data-id="' + t.id + '" class="stSel" aria-label="Status for ticket ' + t.id + '">' +
+      STATUSES.map(function(s){ return '<option' + (s === t.status ? " selected" : "") + '>' + s + '</option>'; }).join("") +
+      '</select>';
+
+    tr.innerHTML =
+      '<td class="id">#' + t.id + '<br><span class="kind">' + t.kind + '</span></td>' +
+      '<td class="ln">' + t.line + '</td>' +
+      '<td class="ttl"><strong>' + esc(t.title) + '</strong>' +
+        (t.desc ? '<span class="d">' + esc(t.desc) + '</span>' : "") +
+        '<span class="d">' + esc(t.cat) + (t.down ? ' · ' + t.down + ' min downtime' : "") + ' · ' + esc(t.shift || "") + '</span></td>' +
+      '<td><span class="chip ' + SEV_CLASS[t.sev] + '">' + SEV_LABEL[t.sev] + '</span></td>' +
+      '<td>' + statusSel + '</td>' +
+      '<td>' + esc(t.by) + '</td>' +
+      '<td class="age' + (overdue ? " over" : "") + '">' + fmtAge(age) + (overdue ? " ⚑" : "") + '</td>';
+    body.appendChild(tr);
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll(".stSel"), function(sel){
+    sel.addEventListener("change", function(){
+      var id = Number(sel.getAttribute("data-id"));
+      tickets.forEach(function(t){ if(t.id === id) t.status = sel.value; });
+      save(); renderKpis(); renderBoard(); renderTable();
+      toast("Ticket #" + id + " set to " + sel.value);
+    });
+  });
+
+  el("empty").hidden = list.length > 0;
+  el("qCount").textContent = list.length + " of " + tickets.length + " tickets";
+}
+
+/* ---------- form ---------- */
+function openForm(line){
+  el("panel").hidden = false;
+  if(line) el("fLine").value = line;
+  el("fTitle").focus();
+  el("panel").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+
+function submitForm(e){
+  e.preventDefault();
+  var title = el("fTitle").value.trim(), by = el("fBy").value.trim();
+  if(!title || !by){
+    el("formMsg").textContent = "Summary and reporter name are both needed before this can go to the queue.";
+    (!title ? el("fTitle") : el("fBy")).focus();
+    return;
+  }
+  var maxId = tickets.reduce(function(m,t){ return Math.max(m, t.id); }, 1000);
+  var t = {
+    id: maxId + 1,
+    kind: el("fKind").value,
+    line: el("fLine").value,
+    title: title,
+    desc: el("fDesc").value.trim(),
+    cat: el("fCat").value,
+    sev: el("fSev").value,
+    status: "New",
+    by: by,
+    shift: el("fShift").value,
+    down: Number(el("fDown").value) || 0,
+    created: new Date().toISOString()
+  };
+  tickets.unshift(t); save();
+  el("form").reset(); el("fSev").value = "S2"; el("formMsg").textContent = "";
+  el("panel").hidden = true;
+  renderKpis(); renderBoard(); renderTable();
+  toast("Ticket #" + t.id + " raised on " + t.line);
+}
+
+/* ---------- export ---------- */
+function exportCsv(){
+  var cols = ["TicketID","RequestType","Line","LineName","Title","Description","Category","Severity","Status","ReportedBy","Shift","DowntimeMinutes","ReportedOn"];
+  var rows = filtered().map(function(t){
+    return [t.id, t.kind, t.line, lineName(t.line), t.title, t.desc, t.cat, t.sev, t.status, t.by, t.shift, t.down, t.created];
+  });
+  var csv = [cols].concat(rows).map(function(r){
+    return r.map(function(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; }).join(",");
+  }).join("\r\n");
+
+  var url = URL.createObjectURL(new Blob(["﻿" + csv], {type:"text/csv;charset=utf-8"}));
+  var a = document.createElement("a");
+  a.href = url; a.download = "line-issues-" + new Date().toISOString().slice(0,10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  toast("Exported " + rows.length + " tickets");
+}
+
+/* ---------- wiring ---------- */
+function fillSelects(){
+  var opts = LINES.map(function(L){ return '<option value="' + L.id + '">' + L.id + " — " + esc(L.name) + '</option>'; }).join("");
+  el("fLine").innerHTML = opts;
+  el("fltLine").innerHTML = '<option value="">All lines</option>' + opts;
+  el("fCat").innerHTML = CATEGORIES.map(function(c){ return '<option>' + c + '</option>'; }).join("");
+}
+
+fillSelects();
+el("reportBtn").addEventListener("click", function(){ openForm(selectedLine); });
+el("closeForm").addEventListener("click", function(){ el("panel").hidden = true; el("formMsg").textContent = ""; });
+el("form").addEventListener("submit", submitForm);
+el("exportBtn").addEventListener("click", exportCsv);
+["fltStatus","fltSev","fltKind","fltQ"].forEach(function(id){
+  el(id).addEventListener("input", renderTable);
+});
+el("fltLine").addEventListener("change", function(){
+  selectedLine = el("fltLine").value; renderBoard(); renderTable();
+});
+el("clearFlt").addEventListener("click", function(){
+  selectedLine = ""; el("fltLine").value = ""; el("fltStatus").value = "open";
+  el("fltSev").value = ""; el("fltKind").value = ""; el("fltQ").value = "";
+  renderBoard(); renderTable();
+});
+el("resetBtn").addEventListener("click", function(){
+  tickets = seed(); save(); renderKpis(); renderBoard(); renderTable();
+  toast("Sample data restored");
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && !el("panel").hidden){ el("panel").hidden = true; }
+});
+
+renderKpis(); renderBoard(); renderTable();
+})();
+</script>
+<!-- ARTIFACT-BODY-END -->
+</body>
+</html>

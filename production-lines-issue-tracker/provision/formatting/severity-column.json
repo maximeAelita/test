@@ -1,0 +1,27 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "div",
+  "style": {
+    "display": "inline-flex",
+    "align-items": "center",
+    "gap": "6px",
+    "padding": "2px 8px",
+    "border-radius": "3px",
+    "font-size": "11px",
+    "font-weight": "600",
+    "letter-spacing": ".04em",
+    "text-transform": "uppercase",
+    "background-color": "=if(@currentField == 'S1 - Line Down', '#FAE7E4', if(@currentField == 'S2 - Major', '#F7EEDC', if(@currentField == 'S3 - Minor', '#E6EEF6', '#EDF0F2')))",
+    "color": "=if(@currentField == 'S1 - Line Down', '#C23B2E', if(@currentField == 'S2 - Major', '#B57312', if(@currentField == 'S3 - Minor', '#3D6E9E', '#7A8894')))"
+  },
+  "children": [
+    {
+      "elmType": "span",
+      "attributes": {
+        "iconName": "=if(@currentField == 'S1 - Line Down', 'Error', if(@currentField == 'S2 - Major', 'Warning', if(@currentField == 'S3 - Minor', 'Info', 'CircleRing')))"
+      },
+      "style": { "font-size": "12px" }
+    },
+    { "elmType": "span", "txtContent": "@currentField" }
+  ]
+}

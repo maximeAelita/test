@@ -1,0 +1,13 @@
+LineCode,LineName,Area,AssetTag
+L01,Bottle infeed & rinser,Wet end,AST-1001
+L02,Filler A,Wet end,AST-1002
+L03,Filler B,Wet end,AST-1003
+L04,Capper & torque check,Wet end,AST-1004
+L05,Tunnel pasteuriser,Thermal,AST-1005
+L06,Dryer & air knife,Thermal,AST-1006
+L07,Labeller 1,Dry end,AST-1007
+L08,Labeller 2,Dry end,AST-1008
+L09,Vision & reject station,Dry end,AST-1009
+L10,Case packer,Packing,AST-1010
+L11,Palletiser,Packing,AST-1011
+L12,Stretch wrap & despatch,Packing,AST-1012

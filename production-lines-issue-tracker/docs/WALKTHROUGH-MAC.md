@@ -73,9 +73,12 @@ Click the **Title** column header → **Column settings** → **Rename** → `Li
 3. Click the first empty cell under *Line Code* in SharePoint, **⌘V**.
 4. Click **Exit grid view**.
 
-You should have 12 rows, L01 to L12. Set each **Line State** to `Running` if the paste
-left them blank. **These are placeholder names** (Filler A, Palletiser…) — overwrite them
-with your real line names now, straight in the grid.
+You should have 12 rows: Line Code `L01`–`L12`, Line Name `Line 1`–`Line 12`. Set each
+**Line State** to `Running` if the paste left them blank.
+
+The codes are padded (`L01`, not `L1`) on purpose — SharePoint sorts text alphabetically,
+so unpadded numbers would order 1, 10, 11, 12, 2, 3. If your lines ever get real names,
+type them into **Line Name** and leave the codes alone.
 
 ---
 

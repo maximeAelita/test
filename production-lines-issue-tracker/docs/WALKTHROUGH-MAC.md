@@ -99,8 +99,15 @@ first.
 
 **Line** — type **Lookup**.
 - *Select a list as a source*: `Production Lines`
-- *Select a column from the list*: `Line Code`
+- *Select a column from the list*: **`Line Name`** — tickets then show *Line 3* rather than
+  *L03*, which is what people say out loud. `Line Code` works too; the lookup stores the
+  target item's ID either way, so only the displayed text differs.
 - Turn **Require that this column contains information** on. → **Save**
+
+> **Column list looks wrong or empty?** It only populates after the source list is
+> chosen, and it caches — hard-refresh the page (**⌘R**) and reselect the source. If a
+> column you renamed still shows its old name, the rename didn't save: go back and use
+> **Column settings → Edit** rather than *Rename*, which does not persist on every tenant.
 
 **Ticket Type** — Choice. Options: `Issue`, `Request`. Default `Issue`. Required on.
 

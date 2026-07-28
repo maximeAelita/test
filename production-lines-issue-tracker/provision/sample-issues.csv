@@ -1,13 +1,13 @@
 LineCode,RequestType,Title,Details,Category,Severity,Status,Shift,DowntimeMinutes
-L03,Issue,Filler B head 7 dripping between cycles,Product on the conveyor after every index. Seal kit suspected.,Mechanical,S1 - Line Down,In Progress,B - Afters,95
-L09,Issue,Vision station false-rejecting clear labels,Reject rate 6% against a 0.5% baseline. Lighting drifted after the lamp change.,Controls / PLC,S2 - Major,Triaged,A - Days,0
-L11,Issue,Palletiser E-stop reset needs two attempts,Safety relay latching late. Raised with the safety lead.,Safety,S2 - Major,Waiting on Parts,C - Nights,40
-L07,Request,Add quick-release guard on labeller 1 reel,Reel changes take 11 minutes; a quick-release would cut it to about 4.,Mechanical,S4 - Cosmetic,New,A - Days,0
-L05,Issue,Pasteuriser zone 3 running 4C under target,Steam valve response slow from cold start.,Utilities,S2 - Major,In Progress,A - Days,0
-L01,Issue,Rinser infeed star wheel chattering,"Noise under full infeed pressure, no bottle loss yet.",Mechanical,S3 - Minor,New,B - Afters,0
-L12,Request,Second wrap film holder at despatch,Operators walk to the store mid-shift for film.,Material supply,S4 - Cosmetic,Triaged,C - Nights,0
-L10,Issue,Case packer glue head stringing,Cleaned twice this week; returns within four hours.,Quality defect,S3 - Minor,In Progress,B - Afters,25
-L06,Issue,Air knife pressure drops on changeover,Compressor recovery is slow when both dryers call at once.,Utilities,S3 - Minor,Resolved,A - Days,15
-L02,Issue,Filler A fill volume drifting high,Recalibrated flowmeters; monitoring for a shift.,Quality defect,S2 - Major,Resolved,A - Days,60
-L04,Issue,Capper torque out of spec on 500ml,Head 3 chuck worn. Replaced and verified across 200 caps.,Mechanical,S2 - Major,Closed,C - Nights,75
-L08,Request,Label reel low-level sensor for labeller 2,Line 7 has one; line 8 does not. Would stop the run-out stoppages.,Controls / PLC,S4 - Cosmetic,Closed,A - Days,0
+L03,Issue,Drive motor tripping under load,Overload trips within ten minutes of a full-rate start. Line stopped.,Electrical,S1 - Line Down,In Progress,B - Afters,95
+L09,Issue,Reject rate up to 6% since Tuesday,Baseline is 0.5%. Started after the sensor was replaced.,Quality defect,S2 - Major,Triaged,A - Days,0
+L06,Issue,Air pressure drops during changeover,Compressor recovery slow when two stations call at once. Sequenced the calls.,Utilities,S3 - Minor,Resolved,A - Days,15
+L11,Issue,E-stop reset needs two attempts,Safety relay latching late. Raised with the safety lead.,Safety,S2 - Major,Waiting on Parts,C - Nights,40
+L07,Request,Quick-release guard to speed up changeovers,Changeover takes 11 minutes; a quick-release would cut it to about 4.,Mechanical,S4 - Cosmetic,New,A - Days,0
+L02,Issue,Output drifting out of tolerance,Recalibrated and verified across a full shift.,Quality defect,S2 - Major,Resolved,A - Days,60
+L05,Issue,Running 4C under temperature target,Valve response slow from a cold start.,Utilities,S2 - Major,In Progress,A - Days,0
+L01,Issue,Infeed chattering at full rate,"Noise under full infeed pressure, no product loss yet.",Mechanical,S3 - Minor,New,B - Afters,0
+L04,Issue,Station 3 out of spec after changeover,Worn part replaced and verified across 200 units.,Mechanical,S2 - Major,Closed,C - Nights,75
+L12,Request,Second consumables holder at the end of line,Operators walk to the store mid-shift to restock.,Material supply,S4 - Cosmetic,Triaged,C - Nights,0
+L10,Issue,Glue head stringing onto the conveyor,Cleaned twice this week; returns within four hours.,Quality defect,S3 - Minor,In Progress,B - Afters,25
+L08,Request,Low-level sensor to match line 7,Line 7 has one; line 8 does not. Would stop the run-out stoppages.,Controls / PLC,S4 - Cosmetic,Closed,A - Days,0

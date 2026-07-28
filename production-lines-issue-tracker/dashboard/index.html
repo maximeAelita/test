@@ -91,7 +91,6 @@ button,input,select,textarea{font:inherit;color:inherit}
 .line[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .line .id{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
 .dot{width:8px;height:8px;border-radius:50%;flex:none}
-.line .nm{font-size:11.5px;color:var(--muted);line-height:1.35;min-height:2.7em}
 .line .cnt{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between;align-items:center}
 .sevbar{display:flex;gap:2px;height:4px;border-radius:2px;overflow:hidden;background:var(--rule-soft)}
 .sevbar i{display:block;height:100%;border-radius:2px}
@@ -321,18 +320,10 @@ footer code{font-family:var(--mono);font-size:11.5px;background:var(--surface);b
 "use strict";
 
 var LINES = [
-  {id:"L01", name:"Bottle infeed & rinser",   area:"Wet end"},
-  {id:"L02", name:"Filler A",                 area:"Wet end"},
-  {id:"L03", name:"Filler B",                 area:"Wet end"},
-  {id:"L04", name:"Capper & torque check",    area:"Wet end"},
-  {id:"L05", name:"Tunnel pasteuriser",       area:"Thermal"},
-  {id:"L06", name:"Dryer & air knife",        area:"Thermal"},
-  {id:"L07", name:"Labeller 1",               area:"Dry end"},
-  {id:"L08", name:"Labeller 2",               area:"Dry end"},
-  {id:"L09", name:"Vision & reject station",  area:"Dry end"},
-  {id:"L10", name:"Case packer",              area:"Packing"},
-  {id:"L11", name:"Palletiser",               area:"Packing"},
-  {id:"L12", name:"Stretch wrap & despatch",  area:"Packing"}
+  {id:"L01", name:"Line 1"},  {id:"L02", name:"Line 2"},  {id:"L03", name:"Line 3"},
+  {id:"L04", name:"Line 4"},  {id:"L05", name:"Line 5"},  {id:"L06", name:"Line 6"},
+  {id:"L07", name:"Line 7"},  {id:"L08", name:"Line 8"},  {id:"L09", name:"Line 9"},
+  {id:"L10", name:"Line 10"}, {id:"L11", name:"Line 11"}, {id:"L12", name:"Line 12"}
 ];
 
 var CATEGORIES = ["Mechanical","Electrical","Controls / PLC","Quality defect","Safety","Material supply","Utilities","Changeover","Housekeeping","Other"];
@@ -348,18 +339,18 @@ function daysAgo(n){ return new Date(Date.now() - n*DAY).toISOString(); }
 
 function seed(){
   return [
-    {id:1041, kind:"Issue",   line:"L03", title:"Filler B head 7 dripping between cycles",     desc:"Product on the conveyor after every index. Seal kit suspected.", cat:"Mechanical",    sev:"S1", status:"In Progress",      by:"J. Okafor",  shift:"B — Afters", down:95, created:daysAgo(0.4)},
-    {id:1040, kind:"Issue",   line:"L09", title:"Vision station false-rejecting clear labels", desc:"Reject rate 6% against a 0.5% baseline. Lighting drifted after the lamp change.", cat:"Controls / PLC", sev:"S2", status:"Triaged",   by:"M. Bianchi", shift:"A — Days",   down:0,  created:daysAgo(1.2)},
-    {id:1039, kind:"Issue",   line:"L06", title:"Air knife pressure drops on changeover",      desc:"Compressor recovery is slow when both dryers call at once. Sequenced the calls.", cat:"Utilities", sev:"S3", status:"Resolved", by:"A. Novak", shift:"A — Days", down:15, created:daysAgo(1.9)},
-    {id:1038, kind:"Issue",   line:"L11", title:"Palletiser E-stop reset needs two attempts",  desc:"Safety relay latching late. Raised with the safety lead.", cat:"Safety",        sev:"S2", status:"Waiting on Parts", by:"D. Rahman", shift:"C — Nights", down:40, created:daysAgo(2.6)},
-    {id:1037, kind:"Request", line:"L07", title:"Add quick-release guard on labeller 1 reel",  desc:"Reel changes take 11 minutes; a quick-release would cut it to about 4.", cat:"Mechanical", sev:"S4", status:"New",       by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(3.1)},
-    {id:1036, kind:"Issue",   line:"L02", title:"Filler A fill volume drifting high",          desc:"Recalibrated flowmeters, verified across a full shift.", cat:"Quality defect", sev:"S2", status:"Resolved", by:"M. Bianchi", shift:"A — Days", down:60, created:daysAgo(3.8)},
-    {id:1035, kind:"Issue",   line:"L05", title:"Pasteuriser zone 3 running 4°C under target", desc:"Steam valve response slow from cold start.", cat:"Utilities",  sev:"S2", status:"In Progress", by:"A. Novak",  shift:"A — Days",   down:0,  created:daysAgo(4.4)},
-    {id:1034, kind:"Issue",   line:"L01", title:"Rinser infeed star wheel chattering",         desc:"Noise under full infeed pressure, no bottle loss yet.", cat:"Mechanical", sev:"S3", status:"New",   by:"P. Osei",    shift:"B — Afters", down:0,  created:daysAgo(5.3)},
-    {id:1033, kind:"Issue",   line:"L04", title:"Capper torque out of spec on 500ml",          desc:"Head 3 chuck worn. Replaced and verified across 200 caps.", cat:"Mechanical", sev:"S2", status:"Closed", by:"J. Okafor", shift:"C — Nights", down:75, created:daysAgo(6.1)},
-    {id:1032, kind:"Request", line:"L12", title:"Second wrap film holder at despatch",         desc:"Operators walk to the store mid-shift for film.", cat:"Material supply", sev:"S4", status:"Triaged", by:"K. Lindqvist", shift:"C — Nights", down:0, created:daysAgo(6.5)},
-    {id:1031, kind:"Issue",   line:"L10", title:"Case packer glue head stringing",             desc:"Cleaned twice this week, returns within four hours.", cat:"Quality defect", sev:"S3", status:"In Progress", by:"R. Duarte", shift:"B — Afters", down:25, created:daysAgo(7.8)},
-    {id:1030, kind:"Request", line:"L08", title:"Label reel low-level sensor for labeller 2",  desc:"Line 7 has one; line 8 does not. Would stop the run-out stoppages.", cat:"Controls / PLC", sev:"S4", status:"Closed", by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(16.5)}
+    {id:1041, kind:"Issue",   line:"L03", title:"Drive motor tripping under load",             desc:"Overload trips within ten minutes of a full-rate start. Line stopped.", cat:"Electrical",  sev:"S1", status:"In Progress",      by:"J. Okafor",  shift:"B — Afters", down:95, created:daysAgo(0.4)},
+    {id:1040, kind:"Issue",   line:"L09", title:"Reject rate up to 6% since Tuesday",          desc:"Baseline is 0.5%. Started after the sensor was replaced.", cat:"Quality defect", sev:"S2", status:"Triaged",   by:"M. Bianchi", shift:"A — Days",   down:0,  created:daysAgo(1.2)},
+    {id:1039, kind:"Issue",   line:"L06", title:"Air pressure drops during changeover",        desc:"Compressor recovery slow when two stations call at once. Sequenced the calls.", cat:"Utilities", sev:"S3", status:"Resolved", by:"A. Novak", shift:"A — Days", down:15, created:daysAgo(1.9)},
+    {id:1038, kind:"Issue",   line:"L11", title:"E-stop reset needs two attempts",             desc:"Safety relay latching late. Raised with the safety lead.", cat:"Safety",        sev:"S2", status:"Waiting on Parts", by:"D. Rahman", shift:"C — Nights", down:40, created:daysAgo(2.6)},
+    {id:1037, kind:"Request", line:"L07", title:"Quick-release guard to speed up changeovers", desc:"Changeover takes 11 minutes; a quick-release would cut it to about 4.", cat:"Mechanical", sev:"S4", status:"New",       by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(3.1)},
+    {id:1036, kind:"Issue",   line:"L02", title:"Output drifting out of tolerance",            desc:"Recalibrated and verified across a full shift.", cat:"Quality defect", sev:"S2", status:"Resolved", by:"M. Bianchi", shift:"A — Days", down:60, created:daysAgo(3.8)},
+    {id:1035, kind:"Issue",   line:"L05", title:"Running 4°C under temperature target",        desc:"Valve response slow from a cold start.", cat:"Utilities",  sev:"S2", status:"In Progress", by:"A. Novak",  shift:"A — Days",   down:0,  created:daysAgo(4.4)},
+    {id:1034, kind:"Issue",   line:"L01", title:"Infeed chattering at full rate",              desc:"Noise under full infeed pressure, no product loss yet.", cat:"Mechanical", sev:"S3", status:"New",   by:"P. Osei",    shift:"B — Afters", down:0,  created:daysAgo(5.3)},
+    {id:1033, kind:"Issue",   line:"L04", title:"Station 3 out of spec after changeover",      desc:"Worn part replaced and verified across 200 units.", cat:"Mechanical", sev:"S2", status:"Closed", by:"J. Okafor", shift:"C — Nights", down:75, created:daysAgo(6.1)},
+    {id:1032, kind:"Request", line:"L12", title:"Second consumables holder at the end of line",desc:"Operators walk to the store mid-shift to restock.", cat:"Material supply", sev:"S4", status:"Triaged", by:"K. Lindqvist", shift:"C — Nights", down:0, created:daysAgo(6.5)},
+    {id:1031, kind:"Issue",   line:"L10", title:"Glue head stringing onto the conveyor",       desc:"Cleaned twice this week, returns within four hours.", cat:"Quality defect", sev:"S3", status:"In Progress", by:"R. Duarte", shift:"B — Afters", down:25, created:daysAgo(7.8)},
+    {id:1030, kind:"Request", line:"L08", title:"Low-level sensor to match line 7",            desc:"Line 7 has one; line 8 does not. Would stop the run-out stoppages.", cat:"Controls / PLC", sev:"S4", status:"Closed", by:"S. Whitlock", shift:"A — Days", down:0, created:daysAgo(16.5)}
   ];
 }
 
@@ -397,9 +388,9 @@ function renderKpis(){
 
   el("kOpen").textContent = open.length;
   el("kDown").textContent = down.length;
-  el("kDownFoot").textContent = downLines.length ? downLines.join(", ") + " stopped" : "No lines stopped";
+  el("kDownFoot").textContent = downLines.length ? downLines.map(lineName).join(", ") + " stopped" : "No lines stopped";
   el("kAge").textContent = open.length ? Math.round(oldest) : 0;
-  el("kAgeFoot").textContent = open.length ? "days · " + (open.slice().sort(function(a,b){ return ageDays(b)-ageDays(a); })[0].line) : "days";
+  el("kAgeFoot").textContent = open.length ? "days · " + lineName(open.slice().sort(function(a,b){ return ageDays(b)-ageDays(a); })[0].line) : "days";
   el("kDone").textContent = recent.length;
 }
 
@@ -420,15 +411,14 @@ function renderBoard(){
     b.type = "button";
     b.className = "line";
     b.setAttribute("aria-pressed", selectedLine === L.id ? "true" : "false");
-    b.setAttribute("aria-label", L.id + " " + L.name + " — " + mine.length + " open, status " + state);
+    b.setAttribute("aria-label", L.name + " — " + mine.length + " open, status " + state);
 
     var bars = ["S1","S2","S3","S4"].map(function(s){
       return counts[s] ? '<i style="flex:' + counts[s] + ';background:' + SEV_VAR[s] + '"></i>' : "";
     }).join("");
 
     b.innerHTML =
-      '<span class="id"><i class="dot" style="background:var(--st-' + (state==="major"?"major":state==="down"?"down":state==="minor"?"minor":"ok") + ')"></i>' + L.id + '</span>' +
-      '<span class="nm">' + esc(L.name) + '</span>' +
+      '<span class="id"><i class="dot" style="background:var(--st-' + state + ')"></i>' + esc(L.name) + '</span>' +
       '<span class="sevbar">' + (bars || '<i style="flex:1;background:var(--rule-soft)"></i>') + '</span>' +
       '<span class="cnt"><span>' + mine.length + ' open</span><span class="chip ' +
         (state==="down"?"s-down":state==="major"?"s-major":state==="minor"?"s-minor":"s-ok") + '">' +
@@ -483,7 +473,7 @@ function renderTable(){
 
     tr.innerHTML =
       '<td class="id">#' + t.id + '<br><span class="kind">' + t.kind + '</span></td>' +
-      '<td class="ln">' + t.line + '</td>' +
+      '<td class="ln">' + esc(lineName(t.line)) + '</td>' +
       '<td class="ttl"><strong>' + esc(t.title) + '</strong>' +
         (t.desc ? '<span class="d">' + esc(t.desc) + '</span>' : "") +
         '<span class="d">' + esc(t.cat) + (t.down ? ' · ' + t.down + ' min downtime' : "") + ' · ' + esc(t.shift || "") + '</span></td>' +
@@ -542,7 +532,7 @@ function submitForm(e){
   el("form").reset(); el("fSev").value = "S2"; el("formMsg").textContent = "";
   el("panel").hidden = true;
   renderKpis(); renderBoard(); renderTable();
-  toast("Ticket #" + t.id + " raised on " + t.line);
+  toast("Ticket #" + t.id + " raised on " + lineName(t.line));
 }
 
 /* ---------- export ---------- */
@@ -565,7 +555,7 @@ function exportCsv(){
 
 /* ---------- wiring ---------- */
 function fillSelects(){
-  var opts = LINES.map(function(L){ return '<option value="' + L.id + '">' + L.id + " — " + esc(L.name) + '</option>'; }).join("");
+  var opts = LINES.map(function(L){ return '<option value="' + L.id + '">' + esc(L.name) + '</option>'; }).join("");
   el("fLine").innerHTML = opts;
   el("fltLine").innerHTML = '<option value="">All lines</option>' + opts;
   el("fCat").innerHTML = CATEGORIES.map(function(c){ return '<option>' + c + '</option>'; }).join("");

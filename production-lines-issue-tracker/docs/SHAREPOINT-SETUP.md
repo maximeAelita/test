@@ -71,8 +71,6 @@ Rename the **Title** column to `Line Code`, then add:
 | Column | Type | Notes |
 |---|---|---|
 | Line Name | Single line of text | e.g. *Filler A* |
-| Area | Single line of text | Wet end / Thermal / Dry end / Packing |
-| Asset Tag | Single line of text | optional |
 | Line Owner | Person | who owns the line |
 | Line State | Choice | `Running`, `Degraded`, `Down`, `Planned Downtime` — default `Running` |
 

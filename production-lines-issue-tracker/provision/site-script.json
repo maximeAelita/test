@@ -22,22 +22,6 @@
         },
         {
           "verb": "addSPField",
-          "fieldType": "Text",
-          "internalName": "LineArea",
-          "displayName": "Area",
-          "isRequired": false,
-          "addToDefaultView": true
-        },
-        {
-          "verb": "addSPField",
-          "fieldType": "Text",
-          "internalName": "LineAssetTag",
-          "displayName": "Asset Tag",
-          "isRequired": false,
-          "addToDefaultView": true
-        },
-        {
-          "verb": "addSPField",
           "fieldType": "User",
           "internalName": "LineOwner",
           "displayName": "Line Owner",
@@ -55,10 +39,8 @@
           "viewFields": [
             "Title",
             "LineName",
-            "LineArea",
             "LineState",
-            "LineOwner",
-            "LineAssetTag"
+            "LineOwner"
           ],
           "query": "<OrderBy><FieldRef Name=\"Title\" Ascending=\"TRUE\"/></OrderBy>",
           "rowLimit": 30,

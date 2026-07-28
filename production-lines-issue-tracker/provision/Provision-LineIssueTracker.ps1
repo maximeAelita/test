@@ -86,9 +86,7 @@ if (-not $linesList) {
 Set-PnPField -List $LINES_LIST -Identity "Title" -Values @{ Title = "Line Code" }
 
 $lineFields = @(
-    @{ Name = "LineName";    Display = "Line Name";    Type = "Text" },
-    @{ Name = "LineArea";    Display = "Area";         Type = "Text" },
-    @{ Name = "LineAssetTag";Display = "Asset Tag";    Type = "Text" }
+    @{ Name = "LineName"; Display = "Line Name"; Type = "Text" }
 )
 foreach ($f in $lineFields) {
     if (-not (Get-PnPField -List $LINES_LIST -Identity $f.Name -ErrorAction SilentlyContinue)) {
@@ -120,11 +118,9 @@ $existing = (Get-PnPListItem -List $LINES_LIST -PageSize 100).FieldValues.Title
 foreach ($row in Import-Csv $LinesCsv) {
     if ($existing -contains $row.LineCode) { Write-Skip $row.LineCode; continue }
     Add-PnPListItem -List $LINES_LIST -Values @{
-        Title        = $row.LineCode
-        LineName     = $row.LineName
-        LineArea     = $row.Area
-        LineAssetTag = $row.AssetTag
-        LineState    = "Running"
+        Title     = $row.LineCode
+        LineName  = $row.LineName
+        LineState = "Running"
     } | Out-Null
     Write-Made "$($row.LineCode) - $($row.LineName)"
 }

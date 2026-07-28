@@ -53,8 +53,6 @@ in the name, click **Save**.
 | Column name | Type |
 |---|---|
 | Line Name | Single line of text |
-| Area | Single line of text |
-| Asset Tag | Single line of text |
 | Line Owner | Person |
 | Line State | Choice — see below |
 

@@ -11,22 +11,28 @@ OUT = '/home/user/test/production-lines-issue-tracker/excel/Production-Lines-Iss
 LAST = 200                      # rows of the ticket table that are pre-formatted
 R = f'$2:${LAST}'
 
-INK, INK2, MUTED = '12181D', '47535E', '7A8894'
-ACCENT, RULE, BAND = '0E6E7D', 'D5DCE2', 'F7F9FA'
-SEV = {                          # fill, font
-    'S1 - Line Down': ('FAE7E4', 'C23B2E'),
-    'S2 - Major':     ('F7EEDC', 'B57312'),
-    'S3 - Minor':     ('E6EEF6', '3D6E9E'),
-    'S4 - Cosmetic':  ('EDF0F2', '7A8894'),
+INK, INK2, MUTED = 'FF12181D', 'FF47535E', 'FF7A8894'
+ACCENT, RULE, BAND = 'FF0E6E7D', 'FFD5DCE2', 'FFF7F9FA'
+SEV = {                          # fill, font (8-digit aRGB - Excel wants the alpha byte)
+    'S1 - Line Down': ('FFFAE7E4', 'FFC23B2E'),
+    'S2 - Major':     ('FFF7EEDC', 'FFB57312'),
+    'S3 - Minor':     ('FFE6EEF6', 'FF3D6E9E'),
+    'S4 - Cosmetic':  ('FFEDF0F2', 'FF7A8894'),
 }
-OK_FILL, OK_FONT = 'E2F0E9', '2E7D5B'
+OK_FILL, OK_FONT = 'FFE2F0E9', 'FF2E7D5B'
+
+# Conditional-formatting styles are <dxf> records, and Excel rejects a font name or
+# size inside one - it triggers the "we found a problem with some content" repair.
+# Bold and colour only.
+def cf_font(color):
+    return Font(bold=True, color=color)
 
 A = 'Arial'
 h1   = Font(name=A, size=15, bold=True, color=INK)
 h2   = Font(name=A, size=11, bold=True, color=INK)
 body = Font(name=A, size=10, color=INK)
 dim  = Font(name=A, size=9,  color=MUTED)
-hdr  = Font(name=A, size=9,  bold=True, color='FFFFFF')
+hdr  = Font(name=A, size=9,  bold=True, color='FFFFFFFF')
 big  = Font(name=A, size=22, bold=True, color=INK)
 hdr_fill = PatternFill('solid', fgColor=ACCENT)
 thin = Side(style='thin', color=RULE)
@@ -195,7 +201,7 @@ for row in range(2, LAST + 1):
 for name, col in (('TicketTypes', 'C'), ('LineCodes', 'D'), ('Categories', 'E'),
                   ('Severities', 'F'), ('Statuses', 'G'), ('Shifts', 'K')):
     dv = DataValidation(type='list', formula1=f'={name}', allow_blank=True,
-                        showDropDown=False, errorTitle='Pick from the list',
+                        showErrorMessage=True, errorTitle='Pick from the list',
                         error='Use the dropdown so the Dashboard counts stay right. '
                               'Add new options on the Choices sheet.')
     tk.add_data_validation(dv)
@@ -206,18 +212,18 @@ for label, (fill, font) in SEV.items():
         f'F2:F{LAST}',
         FormulaRule(formula=[f'$F2="{label}"'], stopIfTrue=False,
                     fill=PatternFill('solid', fgColor=fill),
-                    font=Font(name=A, size=10, bold=True, color=font)))
+                    font=cf_font(font)))
 for label in ('Resolved', 'Closed'):
     tk.conditional_formatting.add(
         f'G2:G{LAST}',
         FormulaRule(formula=[f'$G2="{label}"'], stopIfTrue=False,
                     fill=PatternFill('solid', fgColor=OK_FILL),
-                    font=Font(name=A, size=10, bold=True, color=OK_FONT)))
+                    font=cf_font(OK_FONT)))
 tk.conditional_formatting.add(
     f'G2:G{LAST}',
     FormulaRule(formula=['$G2="Waiting on Parts"'], stopIfTrue=False,
                 fill=PatternFill('solid', fgColor=SEV['S2 - Major'][0]),
-                font=Font(name=A, size=10, bold=True, color=SEV['S2 - Major'][1])))
+                font=cf_font(SEV['S2 - Major'][1])))
 # overdue: S1 older than a day, S2 older than three, anything older than a fortnight
 tk.conditional_formatting.add(
     f'Q2:Q{LAST}',
@@ -225,7 +231,7 @@ tk.conditional_formatting.add(
                          f'AND($F2="S2 - Major",$Q2>3),$Q2>14))'],
                 stopIfTrue=False,
                 fill=PatternFill('solid', fgColor=SEV['S1 - Line Down'][0]),
-                font=Font(name=A, size=10, bold=True, color=SEV['S1 - Line Down'][1])))
+                font=cf_font(SEV['S1 - Line Down'][1])))
 
 tk.freeze_panes = 'B2'
 tk.auto_filter.ref = f'A1:Q{LAST}'

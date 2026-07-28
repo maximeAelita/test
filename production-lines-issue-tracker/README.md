@@ -15,6 +15,7 @@ production-lines-issue-tracker/
 ├── dashboard/
 │   └── index.html                     working prototype — open it in a browser
 ├── docs/
+│   ├── WALKTHROUGH-MAC.md             click-by-click, browser only, no terminal
 │   ├── IMPORT-OPTIONS.md              four ways to import it, incl. browser-only
 │   ├── SHAREPOINT-SETUP.md            build it: script path + click-by-click path
 │   └── POWER-AUTOMATE-FLOWS.md        notifications, digests, escalation

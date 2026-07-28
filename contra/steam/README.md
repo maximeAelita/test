@@ -44,7 +44,7 @@ with the stick, the d-pad or the keyboard.
   real App ID issued by Valve, plus the `steamworks.js` native module. None of that
   can be wired up until the app exists in Steamworks, so it is deliberately absent
   rather than stubbed.
-- **Settings persistence.** Volume, key rebinding and fullscreen preference are not
-  yet saved — the game currently writes nothing to disk.
-- **Continues.** Losing your last life returns to the title; there is no continue
-  or checkpoint system.
+Settings, key bindings and your best run now persist in `localStorage`, which
+Electron keeps per-app on disk — so they survive a restart of the packaged build
+without any extra wiring. Steam Cloud would still need the Steamworks SDK to sync
+that between machines.

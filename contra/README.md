@@ -76,10 +76,28 @@ written on button *edges* only, so neither clobbers the other.
 | **A** / LB / LT | Jump |
 | **Start** / Back | Pause, and start from the title |
 
+### Options
+
+<kbd>O</kbd> from the title, or **OPTIONS** in the pause menu. Master / music / SFX
+volume, mute, fullscreen, and **rebindable keys** for every movement and action —
+select a row, press the key you want, and it is taken off whatever action held it
+before so bindings stay unique. **RESET TO DEFAULTS** puts everything back.
+
+Settings and your best run are kept in `localStorage` under `ironvine.v1`. Writes
+are wrapped in try/catch, because private-mode Safari throws on `setItem` and a
+failed save must never take the game down.
+
+### Continues
+
+Losing your last life no longer throws away the run. The game-over screen offers
+**CONTINUE**, which rebuilds the stage you died on with a fresh set of lives and
+keeps the score you had earned. Your best score and furthest stage are shown on
+the title screen.
+
 ### Pause
 
 <kbd>Esc</kbd>, <kbd>P</kbd>, the pad's **Start**, or the **II** button on touch.
-The menu — RESUME · RESTART STAGE · FULLSCREEN · QUIT TO TITLE — takes stick, d-pad,
+The menu — RESUME · RESTART STAGE · OPTIONS · FULLSCREEN · QUIT TO TITLE — takes stick, d-pad,
 keyboard or a tap on the line. Pausing suspends the `AudioContext` too, so the music
 stops rather than playing to an empty screen. **RESTART STAGE** rebuilds the current
 stage without touching your score or lives.
@@ -183,8 +201,10 @@ pessimistic case — real hardware composites these layers on the GPU).
 The shell is deliberately thin: the game already handles fullscreen, pause and
 gamepad itself.
 
-Still missing before a Steam release: Steamworks integration (needs a real App ID
-from Valve), persisted settings and key rebinding, and a continue/checkpoint system.
+Still missing before a Steam release: Steamworks integration — achievements, Cloud
+saves and the overlay all need a real App ID issued by Valve plus the native
+`steamworks.js` module, so none of it can be wired up until the app exists in
+Steamworks.
 
 ## Status
 

@@ -12,6 +12,8 @@ every open ticket, its severity, and how long it has been sitting there.
 
 ```
 production-lines-issue-tracker/
+├── excel/
+│   └── Production-Lines-Issue-Tracker.xlsx   drop in SharePoint/Teams, works immediately
 ├── dashboard/
 │   └── index.html                     working prototype — open it in a browser
 ├── docs/
@@ -32,6 +34,13 @@ production-lines-issue-tracker/
 
 ## Start here
 
+**The zero-setup option:** upload `excel/Production-Lines-Issue-Tracker.xlsx` to a
+SharePoint document library or a Teams channel's Files tab. It works the moment it lands —
+dropdowns, colour-coded severity, a dashboard that counts itself, and browser co-editing
+for the whole crew. No site to build, no columns to create. See *Spreadsheet vs list*
+below for what you give up.
+
+
 **To see it working right now** — open `dashboard/index.html` in any browser. No install,
 no server, no account. Raise a few tickets, click a line tile to filter, change a status.
 Data is stored in that browser only; **Reset to sample data** in the footer puts it back.
@@ -50,6 +59,21 @@ click-by-click column list either way.
 
 Then add notifications from `docs/POWER-AUTOMATE-FLOWS.md` — flow 1 (line down → Teams
 alert) is the one worth doing on day one.
+
+## Spreadsheet vs list
+
+| | Excel workbook | SharePoint list |
+|---|---|---|
+| Setup | Upload the file. Done. | ~25 min of clicking, or one PowerShell command |
+| Editing | Everyone can edit any row | Members can be restricted to editing their own |
+| Notifications | None without extra work | Power Automate flows on new S1, digests, escalation |
+| Attachments | Paste a photo into a cell | Proper per-ticket attachments, straight from a phone |
+| Audit trail | Excel version history on the file | Per-item version history, who changed what |
+| Concurrency | Fine for a few people; clashes if many edit at once | Built for it |
+
+Start with the workbook if you want it running this shift. Move to the list when the
+volume justifies it — the columns line up, so the workbook's rows paste straight into the
+list's grid view.
 
 ## The data model
 

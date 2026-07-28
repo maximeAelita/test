@@ -70,7 +70,7 @@ Rename the **Title** column to `Line Code`, then add:
 
 | Column | Type | Notes |
 |---|---|---|
-| Line Name | Single line of text | e.g. *Filler A* |
+| Line Name | Single line of text | e.g. *Line 1* |
 | Line Owner | Person | who owns the line |
 | Line State | Choice | `Running`, `Degraded`, `Down`, `Planned Downtime` — default `Running` |
 

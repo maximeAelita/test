@@ -15,9 +15,12 @@ production-lines-issue-tracker/
 ├── dashboard/
 │   └── index.html                     working prototype — open it in a browser
 ├── docs/
+│   ├── IMPORT-OPTIONS.md              four ways to import it, incl. browser-only
 │   ├── SHAREPOINT-SETUP.md            build it: script path + click-by-click path
 │   └── POWER-AUTOMATE-FLOWS.md        notifications, digests, escalation
 └── provision/
+    ├── pnp-template.xml               one-command import of the whole site
+    ├── site-script.json               tenant site design, for repeat deployments
     ├── Provision-LineIssueTracker.ps1 PnP PowerShell — creates the whole site
     ├── lines.csv                      the 12 lines; edit before first run
     ├── sample-issues.csv              demo tickets, optional
@@ -32,12 +35,17 @@ production-lines-issue-tracker/
 no server, no account. Raise a few tickets, click a line tile to filter, change a status.
 Data is stored in that browser only; **Reset to sample data** in the footer puts it back.
 
-**To build the real thing** — read `docs/SHAREPOINT-SETUP.md`. Two paths, same result:
+**To build the real thing** — `docs/IMPORT-OPTIONS.md` lists the four import routes and
+which one fits your access. The quickest, if you have PowerShell and site admin:
 
-- **Path A (10 min):** edit `provision/lines.csv` with your real line names, then run
-  `provision/Provision-LineIssueTracker.ps1`. Safe to re-run.
-- **Path B:** click-by-click instructions for building it in the browser, if you don't
-  have PowerShell or the rights to run it.
+```powershell
+Connect-PnPOnline -Url "https://<tenant>.sharepoint.com/sites/ProductionLines" -Interactive
+Invoke-PnPSiteTemplate -Path .\provision\pnp-template.xml
+```
+
+If you have no PowerShell at all, Option 4 in that doc is browser-only — create the lists
+from the CSVs and paste the rows into grid view. `docs/SHAREPOINT-SETUP.md` has the
+click-by-click column list either way.
 
 Then add notifications from `docs/POWER-AUTOMATE-FLOWS.md` — flow 1 (line down → Teams
 alert) is the one worth doing on day one.
@@ -77,7 +85,8 @@ paste**. Use it to trial the workflow with a couple of shifts before committing 
 The prototype is a design and workflow reference, not a SharePoint deployment — modern
 SharePoint pages won't run custom JavaScript. Recreating that look inside SharePoint is
 done with the list webparts and the column formatting JSON in `provision/formatting/`,
-which is why those files exist.
+which is why those files exist. `docs/IMPORT-OPTIONS.md` covers the alternatives if you
+want the dashboard UI itself in SharePoint (Embed web part, SPFx, or Power Apps).
 
 ## Editing it later
 

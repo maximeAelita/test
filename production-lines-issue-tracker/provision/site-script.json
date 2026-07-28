@@ -1,0 +1,323 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/site-design-script-actions.schema.json",
+  "bindata": {},
+  "version": 1,
+  "actions": [
+    {
+      "verb": "createSPList",
+      "listName": "Production Lines",
+      "templateType": 100,
+      "subactions": [
+        {
+          "verb": "setDescription",
+          "description": "One item per production line. Edit here to rename lines or change owners."
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Text",
+          "internalName": "LineName",
+          "displayName": "Line Name",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Text",
+          "internalName": "LineArea",
+          "displayName": "Area",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Text",
+          "internalName": "LineAssetTag",
+          "displayName": "Asset Tag",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "User",
+          "internalName": "LineOwner",
+          "displayName": "Line Owner",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Line State\" Name=\"LineState\" StaticName=\"LineState\" Format=\"Dropdown\" Required=\"TRUE\"><Default>Running</Default><CHOICES><CHOICE>Running</CHOICE><CHOICE>Degraded</CHOICE><CHOICE>Down</CHOICE><CHOICE>Planned Downtime</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPView",
+          "name": "All Lines",
+          "viewFields": [
+            "Title",
+            "LineName",
+            "LineArea",
+            "LineState",
+            "LineOwner",
+            "LineAssetTag"
+          ],
+          "query": "<OrderBy><FieldRef Name=\"Title\" Ascending=\"TRUE\"/></OrderBy>",
+          "rowLimit": 30,
+          "isPaged": true,
+          "makeDefault": true
+        }
+      ]
+    },
+    {
+      "verb": "createSPList",
+      "listName": "Line Issues",
+      "templateType": 100,
+      "subactions": [
+        {
+          "verb": "setDescription",
+          "description": "Report an issue or raise a work request against any production line."
+        },
+        {
+          "verb": "addSPLookupFieldXml",
+          "schemaXml": "<Field Type=\"Lookup\" DisplayName=\"Line\" Name=\"LineRef\" StaticName=\"LineRef\" List=\"{listid:Production Lines}\" ShowField=\"Title\" Required=\"TRUE\" RelationshipDeleteBehavior=\"None\"/>",
+          "targetListName": "Production Lines",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Ticket Type\" Name=\"RequestType\" StaticName=\"RequestType\" Format=\"RadioButtons\" Required=\"TRUE\"><Default>Issue</Default><CHOICES><CHOICE>Issue</CHOICE><CHOICE>Request</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Category\" Name=\"Category\" StaticName=\"Category\" Format=\"Dropdown\" Required=\"TRUE\"><Default>Mechanical</Default><CHOICES><CHOICE>Mechanical</CHOICE><CHOICE>Electrical</CHOICE><CHOICE>Controls / PLC</CHOICE><CHOICE>Quality defect</CHOICE><CHOICE>Safety</CHOICE><CHOICE>Material supply</CHOICE><CHOICE>Utilities</CHOICE><CHOICE>Changeover</CHOICE><CHOICE>Housekeeping</CHOICE><CHOICE>Other</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Severity\" Name=\"Severity\" StaticName=\"Severity\" Format=\"Dropdown\" Required=\"TRUE\"><Default>S2 - Major</Default><CHOICES><CHOICE>S1 - Line Down</CHOICE><CHOICE>S2 - Major</CHOICE><CHOICE>S3 - Minor</CHOICE><CHOICE>S4 - Cosmetic</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Status\" Name=\"TicketStatus\" StaticName=\"TicketStatus\" Format=\"Dropdown\" Required=\"TRUE\"><Default>New</Default><CHOICES><CHOICE>New</CHOICE><CHOICE>Triaged</CHOICE><CHOICE>In Progress</CHOICE><CHOICE>Waiting on Parts</CHOICE><CHOICE>Resolved</CHOICE><CHOICE>Closed</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Choice\" DisplayName=\"Shift\" Name=\"Shift\" StaticName=\"Shift\" Format=\"Dropdown\" Required=\"FALSE\"><CHOICES><CHOICE>A - Days</CHOICE><CHOICE>B - Afters</CHOICE><CHOICE>C - Nights</CHOICE></CHOICES></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Note",
+          "internalName": "Details",
+          "displayName": "Details",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Number",
+          "internalName": "DowntimeMinutes",
+          "displayName": "Downtime Minutes",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "DateTime",
+          "internalName": "TargetDate",
+          "displayName": "Target Date",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "Note",
+          "internalName": "Resolution",
+          "displayName": "Resolution",
+          "isRequired": false,
+          "addToDefaultView": false
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "User",
+          "internalName": "ReportedByUser",
+          "displayName": "Reported By",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPField",
+          "fieldType": "User",
+          "internalName": "AssignedTo",
+          "displayName": "Assigned To",
+          "isRequired": false,
+          "addToDefaultView": true
+        },
+        {
+          "verb": "addSPFieldXml",
+          "schemaXml": "<Field Type=\"Calculated\" DisplayName=\"Age (days)\" Name=\"AgeDays\" StaticName=\"AgeDays\" ResultType=\"Number\" Decimals=\"0\"><Formula>=ROUND(TODAY()-[Created],0)</Formula><FieldRefs><FieldRef Name=\"Created\"/></FieldRefs></Field>",
+          "addToDefaultView": true
+        },
+        {
+          "verb": "setSPFieldCustomFormatter",
+          "fieldDisplayName": "Severity",
+          "formatterJSON": {
+            "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+            "elmType": "div",
+            "style": {
+              "display": "inline-flex",
+              "align-items": "center",
+              "gap": "6px",
+              "padding": "2px 8px",
+              "border-radius": "3px",
+              "font-size": "11px",
+              "font-weight": "600",
+              "letter-spacing": ".04em",
+              "text-transform": "uppercase",
+              "background-color": "=if(@currentField == 'S1 - Line Down', '#FAE7E4', if(@currentField == 'S2 - Major', '#F7EEDC', if(@currentField == 'S3 - Minor', '#E6EEF6', '#EDF0F2')))",
+              "color": "=if(@currentField == 'S1 - Line Down', '#C23B2E', if(@currentField == 'S2 - Major', '#B57312', if(@currentField == 'S3 - Minor', '#3D6E9E', '#7A8894')))"
+            },
+            "children": [
+              {
+                "elmType": "span",
+                "attributes": {
+                  "iconName": "=if(@currentField == 'S1 - Line Down', 'Error', if(@currentField == 'S2 - Major', 'Warning', if(@currentField == 'S3 - Minor', 'Info', 'CircleRing')))"
+                },
+                "style": {
+                  "font-size": "12px"
+                }
+              },
+              {
+                "elmType": "span",
+                "txtContent": "@currentField"
+              }
+            ]
+          }
+        },
+        {
+          "verb": "setSPFieldCustomFormatter",
+          "fieldDisplayName": "Status",
+          "formatterJSON": {
+            "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+            "elmType": "div",
+            "style": {
+              "display": "inline-flex",
+              "align-items": "center",
+              "gap": "6px",
+              "padding": "2px 8px",
+              "border-radius": "3px",
+              "font-size": "11px",
+              "font-weight": "600",
+              "letter-spacing": ".04em",
+              "text-transform": "uppercase",
+              "background-color": "=if(@currentField == 'Resolved' || @currentField == 'Closed', '#E2F0E9', if(@currentField == 'Waiting on Parts', '#F7EEDC', if(@currentField == 'In Progress', '#E2F0F2', '#EDF0F2')))",
+              "color": "=if(@currentField == 'Resolved' || @currentField == 'Closed', '#2E7D5B', if(@currentField == 'Waiting on Parts', '#B57312', if(@currentField == 'In Progress', '#0E6E7D', '#47535E')))"
+            },
+            "children": [
+              {
+                "elmType": "span",
+                "attributes": {
+                  "iconName": "=if(@currentField == 'Resolved' || @currentField == 'Closed', 'CheckMark', if(@currentField == 'Waiting on Parts', 'Clock', if(@currentField == 'In Progress', 'Sync', 'CircleAddition')))"
+                },
+                "style": {
+                  "font-size": "12px"
+                }
+              },
+              {
+                "elmType": "span",
+                "txtContent": "@currentField"
+              }
+            ]
+          }
+        },
+        {
+          "verb": "addSPView",
+          "name": "Open Tickets",
+          "viewFields": [
+            "ID",
+            "RequestType",
+            "LineRef",
+            "Title",
+            "Category",
+            "Severity",
+            "TicketStatus",
+            "Author",
+            "AssignedTo",
+            "AgeDays"
+          ],
+          "query": "<Where><And><Neq><FieldRef Name=\"TicketStatus\"/><Value Type=\"Choice\">Resolved</Value></Neq><Neq><FieldRef Name=\"TicketStatus\"/><Value Type=\"Choice\">Closed</Value></Neq></And></Where><OrderBy><FieldRef Name=\"Severity\" Ascending=\"TRUE\"/><FieldRef Name=\"Created\" Ascending=\"TRUE\"/></OrderBy>",
+          "rowLimit": 50,
+          "isPaged": true,
+          "makeDefault": true
+        },
+        {
+          "verb": "addSPView",
+          "name": "Line Down (S1)",
+          "viewFields": [
+            "ID",
+            "LineRef",
+            "Title",
+            "TicketStatus",
+            "AssignedTo",
+            "DowntimeMinutes",
+            "AgeDays"
+          ],
+          "query": "<Where><Eq><FieldRef Name=\"Severity\"/><Value Type=\"Choice\">S1 - Line Down</Value></Eq></Where><OrderBy><FieldRef Name=\"Created\" Ascending=\"TRUE\"/></OrderBy>",
+          "rowLimit": 50,
+          "isPaged": true,
+          "makeDefault": false
+        },
+        {
+          "verb": "addSPView",
+          "name": "By Line",
+          "viewFields": [
+            "ID",
+            "LineRef",
+            "Title",
+            "Severity",
+            "TicketStatus",
+            "AgeDays"
+          ],
+          "query": "<Where><Neq><FieldRef Name=\"TicketStatus\"/><Value Type=\"Choice\">Closed</Value></Neq></Where><GroupBy Collapse=\"TRUE\"><FieldRef Name=\"LineRef\"/></GroupBy><OrderBy><FieldRef Name=\"Severity\" Ascending=\"TRUE\"/></OrderBy>",
+          "rowLimit": 100,
+          "isPaged": true,
+          "makeDefault": false
+        },
+        {
+          "verb": "addSPView",
+          "name": "My Tickets",
+          "viewFields": [
+            "ID",
+            "LineRef",
+            "Title",
+            "Severity",
+            "TicketStatus",
+            "AgeDays"
+          ],
+          "query": "<Where><Eq><FieldRef Name=\"Author\"/><Value Type=\"Integer\"><UserID Type=\"Integer\"/></Value></Eq></Where><OrderBy><FieldRef Name=\"Created\" Ascending=\"FALSE\"/></OrderBy>",
+          "rowLimit": 50,
+          "isPaged": true,
+          "makeDefault": false
+        },
+        {
+          "verb": "addSPView",
+          "name": "Recently Closed",
+          "viewFields": [
+            "ID",
+            "LineRef",
+            "Title",
+            "Severity",
+            "Resolution",
+            "Modified"
+          ],
+          "query": "<Where><And><Eq><FieldRef Name=\"TicketStatus\"/><Value Type=\"Choice\">Closed</Value></Eq><Geq><FieldRef Name=\"Modified\"/><Value Type=\"DateTime\"><Today OffsetDays=\"-30\"/></Value></Geq></And></Where><OrderBy><FieldRef Name=\"Modified\" Ascending=\"FALSE\"/></OrderBy>",
+          "rowLimit": 50,
+          "isPaged": true,
+          "makeDefault": false
+        }
+      ]
+    }
+  ]
+}

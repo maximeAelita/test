@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PnP provisioning template - Production Lines 1-12 Issue Tracker.
+
+  This is the "import the whole site in one command" option. It creates both
+  lists, every column, the views, and seeds the 12 lines as data rows.
+
+      Install-Module PnP.PowerShell -Scope CurrentUser
+      Connect-PnPOnline -Url "https://<tenant>.sharepoint.com/sites/ProductionLines" -Interactive
+      Invoke-PnPSiteTemplate -Path .\pnp-template.xml
+
+  To go the other way - build the site once, then clone it to another plant:
+
+      Get-PnPSiteTemplate -Out plant-b.xml -Handlers Lists,Fields,Pages
+      Invoke-PnPSiteTemplate -Path plant-b.xml     # against the new site
+
+  NOTE: this file is hand-authored and has not been applied against a live
+  tenant from here. Apply it to a throwaway site first and confirm before
+  running it against the real one. If anything in it is rejected, the
+  PowerShell script (Provision-LineIssueTracker.ps1) builds the same result
+  step by step and reports exactly where it stops.
+-->
+<pnp:Provisioning xmlns:pnp="http://schemas.dev.office.com/PnP/2022/09/ProvisioningSchema">
+
+  <pnp:Preferences Generator="Production Lines Issue Tracker" />
+
+  <pnp:Templates ID="CONTAINER-LINE-TRACKER">
+    <pnp:ProvisioningTemplate ID="TEMPLATE-LINE-TRACKER" Version="1" BaseSiteTemplate="STS#3" Scope="Web">
+
+      <pnp:Lists>
+
+        <!-- ============================ Production Lines ============================ -->
+        <pnp:ListInstance Title="Production Lines"
+                          Description="One item per production line. Edit here to rename lines or change owners."
+                          TemplateType="100"
+                          Url="Lists/ProductionLines"
+                          OnQuickLaunch="true"
+                          EnableVersioning="true">
+          <pnp:Fields>
+            <Field Type="Text"   ID="{11d0bcd3-fbbf-48da-b15f-e780bbd11c56}" Name="LineName"     StaticName="LineName"     DisplayName="Line Name" />
+            <Field Type="Text"   ID="{666f3688-0d16-4ced-a96e-5f45a232aa21}" Name="LineArea"     StaticName="LineArea"     DisplayName="Area" />
+            <Field Type="Text"   ID="{24ef330b-9a2d-46cc-ac76-195e2b91da1e}" Name="LineAssetTag" StaticName="LineAssetTag" DisplayName="Asset Tag" />
+            <Field Type="User"   ID="{d6649449-8d7a-44df-9403-ec24774f249b}" Name="LineOwner"    StaticName="LineOwner"    DisplayName="Line Owner"
+                   UserSelectionMode="PeopleOnly" />
+            <Field Type="Choice" ID="{55374346-0ffc-4d06-adbb-4972867262d1}" Name="LineState"    StaticName="LineState"    DisplayName="Line State"
+                   Format="Dropdown" Required="TRUE">
+              <Default>Running</Default>
+              <CHOICES>
+                <CHOICE>Running</CHOICE>
+                <CHOICE>Degraded</CHOICE>
+                <CHOICE>Down</CHOICE>
+                <CHOICE>Planned Downtime</CHOICE>
+              </CHOICES>
+            </Field>
+          </pnp:Fields>
+
+          <pnp:Views RemoveExistingViews="true">
+            <View DisplayName="All Lines" Type="HTML" BaseViewID="1" Url="Lists/ProductionLines/AllItems.aspx" DefaultView="TRUE">
+              <ViewFields>
+                <FieldRef Name="Title" />
+                <FieldRef Name="LineName" />
+                <FieldRef Name="LineArea" />
+                <FieldRef Name="LineState" />
+                <FieldRef Name="LineOwner" />
+                <FieldRef Name="LineAssetTag" />
+              </ViewFields>
+              <Query><OrderBy><FieldRef Name="Title" Ascending="TRUE" /></OrderBy></Query>
+              <RowLimit Paged="TRUE">30</RowLimit>
+            </View>
+          </pnp:Views>
+
+          <!-- The 12 lines ship with the template. Edit the values here before
+               applying, or rename them in SharePoint afterwards. -->
+          <pnp:DataRows>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L01</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Bottle infeed &amp; rinser</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Wet end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1001</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L02</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Filler A</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Wet end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1002</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L03</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Filler B</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Wet end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1003</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L04</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Capper &amp; torque check</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Wet end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1004</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L05</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Tunnel pasteuriser</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Thermal</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1005</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L06</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Dryer &amp; air knife</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Thermal</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1006</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L07</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Labeller 1</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Dry end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1007</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L08</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Labeller 2</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Dry end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1008</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L09</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Vision &amp; reject station</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Dry end</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1009</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L10</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Case packer</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Packing</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1010</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L11</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Palletiser</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Packing</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1011</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+            <pnp:DataRow>
+              <pnp:DataValue FieldName="Title">L12</pnp:DataValue>
+              <pnp:DataValue FieldName="LineName">Stretch wrap &amp; despatch</pnp:DataValue>
+              <pnp:DataValue FieldName="LineArea">Packing</pnp:DataValue>
+              <pnp:DataValue FieldName="LineAssetTag">AST-1012</pnp:DataValue>
+              <pnp:DataValue FieldName="LineState">Running</pnp:DataValue>
+            </pnp:DataRow>
+          </pnp:DataRows>
+        </pnp:ListInstance>
+
+        <!-- ============================== Line Issues =============================== -->
+        <pnp:ListInstance Title="Line Issues"
+                          Description="Report an issue or raise a work request against any production line."
+                          TemplateType="100"
+                          Url="Lists/LineIssues"
+                          OnQuickLaunch="true"
+                          EnableVersioning="true"
+                          EnableAttachments="true"
+                          ReadSecurity="1"
+                          WriteSecurity="2">
+          <pnp:Fields>
+            <!-- {listid:Production Lines} is resolved by PnP at apply time. -->
+            <Field Type="Lookup" ID="{257971f4-791f-40a4-affb-03317c7508b6}" Name="LineRef" StaticName="LineRef" DisplayName="Line"
+                   List="{listid:Production Lines}" ShowField="Title" Required="TRUE" RelationshipDeleteBehavior="None" />
+
+            <Field Type="Choice" ID="{c64e6ee0-f14f-46df-96fe-72eed93028c2}" Name="RequestType" StaticName="RequestType" DisplayName="Ticket Type"
+                   Format="RadioButtons" Required="TRUE">
+              <Default>Issue</Default>
+              <CHOICES><CHOICE>Issue</CHOICE><CHOICE>Request</CHOICE></CHOICES>
+            </Field>
+
+            <Field Type="Choice" ID="{34a0a547-1d3d-41ec-ae60-3b3ff4d51b8f}" Name="Severity" StaticName="Severity" DisplayName="Severity"
+                   Format="Dropdown" Required="TRUE">
+              <Default>S2 - Major</Default>
+              <CHOICES>
+                <CHOICE>S1 - Line Down</CHOICE>
+                <CHOICE>S2 - Major</CHOICE>
+                <CHOICE>S3 - Minor</CHOICE>
+                <CHOICE>S4 - Cosmetic</CHOICE>
+              </CHOICES>
+            </Field>
+
+            <Field Type="Choice" ID="{a790b3b7-0daf-4a54-8915-027ec58253e6}" Name="TicketStatus" StaticName="TicketStatus" DisplayName="Status"
+                   Format="Dropdown" Required="TRUE">
+              <Default>New</Default>
+              <CHOICES>
+                <CHOICE>New</CHOICE>
+                <CHOICE>Triaged</CHOICE>
+                <CHOICE>In Progress</CHOICE>
+                <CHOICE>Waiting on Parts</CHOICE>
+                <CHOICE>Resolved</CHOICE>
+                <CHOICE>Closed</CHOICE>
+              </CHOICES>
+            </Field>
+
+            <Field Type="Choice" ID="{75a7e811-d8d6-4c0e-ba0e-5874cbf81671}" Name="Category" StaticName="Category" DisplayName="Category"
+                   Format="Dropdown" Required="TRUE">
+              <Default>Mechanical</Default>
+              <CHOICES>
+                <CHOICE>Mechanical</CHOICE>
+                <CHOICE>Electrical</CHOICE>
+                <CHOICE>Controls / PLC</CHOICE>
+                <CHOICE>Quality defect</CHOICE>
+                <CHOICE>Safety</CHOICE>
+                <CHOICE>Material supply</CHOICE>
+                <CHOICE>Utilities</CHOICE>
+                <CHOICE>Changeover</CHOICE>
+                <CHOICE>Housekeeping</CHOICE>
+                <CHOICE>Other</CHOICE>
+              </CHOICES>
+            </Field>
+
+            <Field Type="Choice" ID="{731e883e-43ba-4d54-a05f-bfffc9b5a8ec}" Name="Shift" StaticName="Shift" DisplayName="Shift" Format="Dropdown">
+              <CHOICES><CHOICE>A - Days</CHOICE><CHOICE>B - Afters</CHOICE><CHOICE>C - Nights</CHOICE></CHOICES>
+            </Field>
+
+            <Field Type="Note"     ID="{c8a4017d-5f3d-479f-a6a4-e249a039481e}" Name="Details"         StaticName="Details"         DisplayName="Details" NumLines="6" RichText="FALSE" />
+            <Field Type="Number"   ID="{0a0f8e55-41bb-4ded-8713-6c381b9bf123}" Name="DowntimeMinutes" StaticName="DowntimeMinutes" DisplayName="Downtime Minutes" Decimals="0" Min="0" />
+            <Field Type="DateTime" ID="{2a29b59a-7f7f-4159-9f62-6d126d138ce8}" Name="TargetDate"      StaticName="TargetDate"      DisplayName="Target Date" Format="DateOnly" />
+            <Field Type="Note"     ID="{cc609bd4-87aa-48be-afec-bb57722e97ef}" Name="Resolution"      StaticName="Resolution"      DisplayName="Resolution" NumLines="6" RichText="FALSE" />
+            <Field Type="User"     ID="{f5731a2d-d47c-4c4b-a446-6adcabf26944}" Name="ReportedByUser"  StaticName="ReportedByUser"  DisplayName="Reported By" UserSelectionMode="PeopleOnly" />
+            <Field Type="User"     ID="{3453954e-2574-4682-8b9c-9fa2b6e2c69e}" Name="AssignedTo"      StaticName="AssignedTo"      DisplayName="Assigned To" UserSelectionMode="PeopleOnly" />
+
+            <Field Type="Calculated" ID="{1127cb28-2588-444d-8b38-a989f132dc5e}" Name="AgeDays" StaticName="AgeDays" DisplayName="Age (days)"
+                   ResultType="Number" Decimals="0">
+              <Formula>=ROUND(TODAY()-[Created],0)</Formula>
+              <FieldRefs><FieldRef Name="Created" /></FieldRefs>
+            </Field>
+          </pnp:Fields>
+
+          <pnp:Views RemoveExistingViews="true">
+            <View DisplayName="Open Tickets" Type="HTML" BaseViewID="1" Url="Lists/LineIssues/AllItems.aspx" DefaultView="TRUE">
+              <ViewFields>
+                <FieldRef Name="ID" /><FieldRef Name="RequestType" /><FieldRef Name="LineRef" />
+                <FieldRef Name="Title" /><FieldRef Name="Category" /><FieldRef Name="Severity" />
+                <FieldRef Name="TicketStatus" /><FieldRef Name="Author" /><FieldRef Name="AssignedTo" />
+                <FieldRef Name="AgeDays" />
+              </ViewFields>
+              <Query>
+                <Where>
+                  <And>
+                    <Neq><FieldRef Name="TicketStatus" /><Value Type="Choice">Resolved</Value></Neq>
+                    <Neq><FieldRef Name="TicketStatus" /><Value Type="Choice">Closed</Value></Neq>
+                  </And>
+                </Where>
+                <OrderBy>
+                  <FieldRef Name="Severity" Ascending="TRUE" />
+                  <FieldRef Name="Created" Ascending="TRUE" />
+                </OrderBy>
+              </Query>
+              <RowLimit Paged="TRUE">50</RowLimit>
+            </View>
+
+            <View DisplayName="Line Down (S1)" Type="HTML" BaseViewID="2" Url="Lists/LineIssues/LineDown.aspx">
+              <ViewFields>
+                <FieldRef Name="ID" /><FieldRef Name="LineRef" /><FieldRef Name="Title" />
+                <FieldRef Name="TicketStatus" /><FieldRef Name="AssignedTo" /><FieldRef Name="DowntimeMinutes" />
+                <FieldRef Name="AgeDays" />
+              </ViewFields>
+              <Query>
+                <Where><Eq><FieldRef Name="Severity" /><Value Type="Choice">S1 - Line Down</Value></Eq></Where>
+                <OrderBy><FieldRef Name="Created" Ascending="TRUE" /></OrderBy>
+              </Query>
+              <RowLimit Paged="TRUE">50</RowLimit>
+            </View>
+
+            <View DisplayName="By Line" Type="HTML" BaseViewID="3" Url="Lists/LineIssues/ByLine.aspx">
+              <ViewFields>
+                <FieldRef Name="ID" /><FieldRef Name="LineRef" /><FieldRef Name="Title" />
+                <FieldRef Name="Severity" /><FieldRef Name="TicketStatus" /><FieldRef Name="AgeDays" />
+              </ViewFields>
+              <Query>
+                <Where><Neq><FieldRef Name="TicketStatus" /><Value Type="Choice">Closed</Value></Neq></Where>
+                <GroupBy Collapse="TRUE"><FieldRef Name="LineRef" /></GroupBy>
+                <OrderBy><FieldRef Name="Severity" Ascending="TRUE" /></OrderBy>
+              </Query>
+              <RowLimit Paged="TRUE">100</RowLimit>
+            </View>
+
+            <View DisplayName="My Tickets" Type="HTML" BaseViewID="4" Url="Lists/LineIssues/MyTickets.aspx">
+              <ViewFields>
+                <FieldRef Name="ID" /><FieldRef Name="LineRef" /><FieldRef Name="Title" />
+                <FieldRef Name="Severity" /><FieldRef Name="TicketStatus" /><FieldRef Name="AgeDays" />
+              </ViewFields>
+              <Query>
+                <Where><Eq><FieldRef Name="Author" /><Value Type="Integer"><UserID Type="Integer" /></Value></Eq></Where>
+                <OrderBy><FieldRef Name="Created" Ascending="FALSE" /></OrderBy>
+              </Query>
+              <RowLimit Paged="TRUE">50</RowLimit>
+            </View>
+
+            <View DisplayName="Recently Closed" Type="HTML" BaseViewID="5" Url="Lists/LineIssues/RecentlyClosed.aspx">
+              <ViewFields>
+                <FieldRef Name="ID" /><FieldRef Name="LineRef" /><FieldRef Name="Title" />
+                <FieldRef Name="Severity" /><FieldRef Name="Resolution" /><FieldRef Name="Modified" />
+              </ViewFields>
+              <Query>
+                <Where>
+                  <And>
+                    <Eq><FieldRef Name="TicketStatus" /><Value Type="Choice">Closed</Value></Eq>
+                    <Geq><FieldRef Name="Modified" /><Value Type="DateTime"><Today OffsetDays="-30" /></Value></Geq>
+                  </And>
+                </Where>
+                <OrderBy><FieldRef Name="Modified" Ascending="FALSE" /></OrderBy>
+              </Query>
+              <RowLimit Paged="TRUE">50</RowLimit>
+            </View>
+          </pnp:Views>
+        </pnp:ListInstance>
+
+      </pnp:Lists>
+    </pnp:ProvisioningTemplate>
+  </pnp:Templates>
+</pnp:Provisioning>

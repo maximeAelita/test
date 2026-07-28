@@ -118,7 +118,7 @@ The HTML page can't be dropped into a SharePoint page. Custom script is disabled
 modern pages tenant-wide, and the classic Script Editor / Content Editor web parts are
 retired. Three real alternatives, worst to best for your case:
 
-**Embed web part — works, with conditions.** Host `dashboard/index.html` somewhere with
+**Embed web part — works, with conditions.** Host `docs/index.html` somewhere with
 HTTPS, then use the **Embed** web part with an `<iframe>` pointing at it. A tenant admin
 must first allow the domain: *SharePoint admin centre → Settings → Pages → allow embedding
 from these domains* (`Set-SPOTenant -HtmlFieldSecurity`). The page runs in the iframe with

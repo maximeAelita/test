@@ -11,11 +11,10 @@ every open ticket, its severity, and how long it has been sitting there.
 ## What's in here
 
 ```
+docs/index.html                        the dashboard, served by GitHub Pages
 production-lines-issue-tracker/
 ├── excel/
 │   └── Production-Lines-Issue-Tracker.xlsx   drop in SharePoint/Teams, works immediately
-├── dashboard/
-│   └── index.html                     working prototype — open it in a browser
 ├── docs/
 │   ├── WALKTHROUGH-MAC.md             click-by-click, browser only, no terminal
 │   ├── IMPORT-OPTIONS.md              four ways to import it, incl. browser-only
@@ -41,7 +40,7 @@ for the whole crew. No site to build, no columns to create. See *Spreadsheet vs 
 below for what you give up.
 
 
-**To see it working right now** — open `dashboard/index.html` in any browser. No install,
+**To see it working right now** — open `../docs/index.html` (repo root `docs/`) in any browser. No install,
 no server, no account. Raise a few tickets, click a line tile to filter, change a status.
 Data is stored in that browser only; **Reset to sample data** in the footer puts it back.
 

@@ -156,8 +156,19 @@ The camera follows you **both ways**, so you can double back for a turret or bun
 you ran past. Backtracking is safe: waves you have already triggered don't re-spawn,
 and the wave ahead of you isn't discarded while you're behind it.
 
-The three boss targets sit at heights chosen so that each one is hit by 45°
-fire from a *different* standing distance. Picking your range is the fight.
+## Bosses
+
+**Stage 1 — THE GATE.** Two tracking gun pods and an armoured core, at heights
+chosen so each is hit by 45° fire from a *different* standing distance. Picking
+your range is the fight.
+
+**Stage 2 — THE SLUICE.** A different problem entirely. Three sluice gates are
+armoured shut and rounds spark off them; they cycle open on staggered timers and
+can only be hurt while open, and an open gate pours water at you. The outflow core
+at the base stays sealed until every gate is destroyed. And each gate you break
+floods the gorge higher — the floor you are standing on stops being available, so
+you fight your way up the ledges as you go. The flood drowns you like a pit: the
+shield does not save you.
 
 ## How it works
 

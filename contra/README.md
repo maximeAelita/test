@@ -1,4 +1,4 @@
-# IRONVINE — Stages 1–2
+# IRONVINE — Stages 1–5
 
 An original HTML5 run-and-gun.
 One file, no build step, no dependencies, **no asset files at all** — every sprite,
@@ -138,10 +138,15 @@ Pits are still lethal: falling kills you outright, shield or not.
 
 ## Stages
 
-| | Stage | |
-| --- | --- | --- |
-| **1** | Jungle | Night jungle under a low moon — the run to the fortress gate. |
-| **2** | Gorge | A waterfall gorge: wet slate cliffs, cascades falling through frame, chasms of black water, and a **downstream current** on the lips that shoves you toward the drop. Ends at the dam face. |
+Each stage has its own palette, terrain, wave table, hazard and boss.
+
+| | Stage | Hazard | Boss |
+| --- | --- | --- | --- |
+| **1** | Jungle — night jungle under a low moon | — | **THE GATE** |
+| **2** | Gorge — wet slate cliffs and cascades | **Current** shoves you toward the drop | **THE SLUICE** |
+| **3** | Snowfield — aurora, drifts, dead pines | **Glare ice** carries your momentum | **THE THAW** |
+| **4** | Base — pipework, strobes, grating decks | **Stamping presses** on a timer | **THE PRESS** |
+| **5** | Reactor — molten channels and heat | **Vent jets** erupt after a warning | **THE REACTOR** |
 
 Clearing a stage carries your score, lives and current weapon straight into the next
 one; only the world is rebuilt. Dying back to the title restarts at stage 1.
@@ -162,13 +167,25 @@ and the wave ahead of you isn't discarded while you're behind it.
 chosen so each is hit by 45° fire from a *different* standing distance. Picking
 your range is the fight.
 
-**Stage 2 — THE SLUICE.** A different problem entirely. Three sluice gates are
-armoured shut and rounds spark off them; they cycle open on staggered timers and
-can only be hurt while open, and an open gate pours water at you. The outflow core
-at the base stays sealed until every gate is destroyed. And each gate you break
-floods the gorge higher — the floor you are standing on stops being available, so
-you fight your way up the ledges as you go. The flood drowns you like a pit: the
-shield does not save you.
+**Stage 2 — THE SLUICE.** Three gates are armoured shut and rounds spark off them;
+they cycle open on staggered timers and can only be hurt while open, and an open
+gate pours water at you. The outflow core stays sealed until every gate is
+destroyed. Each gate you break floods the gorge higher, so the floor you are
+standing on stops being available and you fight your way up the ledges. Drowning
+works like a pit — the shield does not save you.
+
+**Stage 3 — THE THAW.** The pods are sheathed in ice. Damage goes into the shell
+first, and a shell you stop hitting **refreezes**, so spreading fire across all
+three gets you nowhere. The core is always exposed but knits itself back together
+while any pod lives. Focus fire, or make no progress at all.
+
+**Stage 4 — THE PRESS.** The core rides a hydraulic ram. It slams to the deck on a
+cycle — stand under it and you are paste — and it is only open to fire at the top
+of the stroke. Two fixed pods keep you honest in between.
+
+**Stage 5 — THE REACTOR.** Armour plates rotate around the core and it is only
+open through the gap. Two feeder pods drive the rotation: kill them and the window
+both widens and slows, which is the entire reason to deal with them first.
 
 ## How it works
 
@@ -219,15 +236,18 @@ Steamworks.
 
 ## Status
 
-Stages 1 and 2 are complete and finishable.
+All five stages are complete and finishable.
 
 Adding stage 2 did need engine changes, despite an earlier note here claiming
 otherwise: `LVL_W` was a hard constant, the terrain and backdrop painters had the
 jungle's geometry and palette baked in, and clearing a stage returned to the title
 rather than advancing. Those are now per-stage — `buildLevel()`, `buildBackdrop()`,
 `buildTerrainCanvas()` and `buildSpawnTable()` dispatch on `stage`, and
-`nextStage()` rebuilds the world while leaving the run intact. A third stage means
-adding another set of those four builders plus a `STAGE_NAMES` entry.
+`nextStage()` rebuilds the world while leaving the run intact. Stages 2–5 are
+registered in three tables — `STAGE_LEVEL`, `STAGE_BACKDROP` and `STAGE_BOSS` — so a
+sixth stage means writing its four builders and its boss, then adding one row to
+each table and a `STAGE_NAMES` entry. Rebuilding a stage costs 9–36 ms, which lands
+during the CLEAR screen.
 
 ## Legal
 

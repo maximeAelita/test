@@ -157,8 +157,10 @@ const Audio_ = {
     this.mus=this.ac.createGain(); this.mus.gain.value=0.30; this.mus.connect(this.master);
     this.sfx=this.ac.createGain(); this.sfx.gain.value=0.55; this.sfx.connect(this.master);
     this.next=this.ac.currentTime+0.05; this.ready=true;
+    applyVolumes();                       /* honour saved volumes on first unlock */
   },
   resume(){ if(this.ac && this.ac.state==='suspended') this.ac.resume(); },
+  applySaved(){ applyVolumes(); },
   tone(f,dur,type='square',vol=.25,slide=0,dest=null){
     if(!this.ready||this.muted) return;
     const t=this.ac.currentTime, o=this.ac.createOscillator(), g=this.ac.createGain();
@@ -964,6 +966,8 @@ const KMAP={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d',
   a:'l',d:'r',w:'u',s:'d',z:'fire',j:'fire',x:'jump',k:'jump',' ':'jump',
   Enter:'start',p:'start',m:'mute'};
 function actionFor(e){
+  const code=e.code;
+  if(code) for(const a in settings.binds) if(settings.binds[a].indexOf(code)>=0) return a;
   return MAP[e.code] || KMAP[e.key] || KMAP[String(e.key||'').toLowerCase()];
 }
 /* normalised code, so the konami check works without e.code too */
@@ -982,7 +986,7 @@ addEventListener('keydown',e=>{
     if(konamiIdx===KONAMI.length){ konamiIdx=0; konamiOn=true; Audio_.init(); Audio_.power();
       floats.push({x:cam.x+W/2,y:130,s:'30 LIVES',col:'#ffd23f',t:0,life:120,big:true}); }
   } else konamiIdx = (code===KONAMI[0])?1:0;
-  if(a==='mute'){ Audio_.init(); Audio_.muted=!Audio_.muted; if(Audio_.master) Audio_.master.gain.value=Audio_.muted?0:0.5; }
+  if(a==='mute'){ Audio_.init(); settings.muted=!settings.muted; applyVolumes(); saveState(); }
 });
 addEventListener('keyup',e=>{ const a=actionFor(e); if(a) keys[a]=false; });
 addEventListener('blur',()=>{ for(const k in keys) keys[k]=false; });
@@ -998,7 +1002,7 @@ function updatePlayer(){
     p.deadT++; p.spinT+=0.32; p.vy+=GRAV*0.75; p.y+=p.vy; p.x+=p.vx;
     if(p.deadT===1){ Audio_.die(); explode(p.x+5,p.y+11,false); }
     if(p.deadT>72){
-      if(lives<=0){ state='GAMEOVER'; stateT=0; }
+      if(lives<=0){ state='GAMEOVER'; stateT=0; goSel=0; recordBest(); }
       else { lives--; respawn(); }
     }
     return;
@@ -1273,7 +1277,7 @@ function updateBoss(){
   if(--boss.droneT<=0){ enemies.push(mkDrone(cam.x+W-20, rnd(120,30))); boss.droneT=rndi(190,300); }
 }
 const STAGE_COUNT=2, STAGE_NAMES={1:'JUNGLE',2:'GORGE'};
-function stageClear(){ state='CLEAR'; stateT=0; player.walkOut=true; score+=5000; }
+function stageClear(){ state='CLEAR'; stateT=0; player.walkOut=true; score+=5000; recordBest(); }
 /* carry score, lives and weapon into the next stage; only the world is rebuilt */
 function nextStage(){
   stage++;
@@ -1856,6 +1860,9 @@ function drawTitle(g){
         if(d<16){ g.fillStyle=`rgba(255,255,255,${(1-d/16)*0.55})`; g.fillRect(px,logoY+r*sc,sc,sc); } } } }
   g.restore();
   drawTextC(g,'STAGE '+stage+'  -  '+STAGE_NAMES[stage],cx,86,'#9fb4c8',1);
+  if(best.score>0) drawTextC(g,'BEST  '+String(best.score).padStart(6,'0')+
+    '   REACHED STAGE '+best.stage,cx,98,'#6d7a8c',1);
+  drawTextC(g,isTouch?'':'O  -  OPTIONS',cx,H-42,'#4e5a6b',1);
   g.fillStyle='#e63946'; g.fillRect(cx-70,96,140,1);
 
   if((titleT>>4)%2===0) drawTextCSh(g,isTouch?'TAP TO START':'PRESS ENTER',cx,112,'#ffe27a','#3a1a10',2);
@@ -1946,15 +1953,21 @@ function render(){
   if(state==='GAMEOVER'){
     g.fillStyle=`rgba(6,2,4,${clamp(stateT/70,0,.80)})`; g.fillRect(0,0,W,H);
     if(stateT>25){
-      drawTextCSh(g,'GAME OVER',W/2,84,'#e63946','#2a0a0e',3);
-      drawTextC(g,'SCORE  '+String(score).padStart(6,'0'),W/2,116,'#c8d3e0',1);
-      if(stateT>75 && (stateT>>4)%2===0) drawTextCSh(g,isTouch?'TAP TO GO ON':'PRESS ENTER',W/2,136,'#ffe27a','#2a0a0e',2);
+      drawTextCSh(g,'GAME OVER',W/2,58,'#e63946','#2a0a0e',3);
+      drawTextC(g,'SCORE  '+String(score).padStart(6,'0'),W/2,88,'#c8d3e0',1);
+      drawTextC(g,'BEST   '+String(best.score).padStart(6,'0'),W/2,100,'#6d7a8c',1);
+      if(stateT>75) for(let i=0;i<GO_ITEMS.length;i++){
+        const on=i===goSel, y=122+i*15;
+        if(on){ g.fillStyle='rgba(255,226,122,.13)'; g.fillRect(W/2-84,y-3,168,13); }
+        drawTextC(g,(on?'> ':'  ')+GO_ITEMS[i],W/2,y,on?'#ffe27a':'#8a97a8',1);
+      }
     }
   }
   postFX(g);
 }
 function postFX(g){
-  if(paused) drawPause(g);
+  if(paused && !optionsOpen) drawPause(g);
+  if(optionsOpen) drawOptions(g);
   if(fade>0){ g.fillStyle=`rgba(0,0,0,${clamp(fade,0,1)})`; g.fillRect(0,0,W,H); }
 }
 
@@ -1985,7 +1998,20 @@ function doStart(){
 addEventListener('keydown',e=>{
   if(e.repeat) return;
   const c=codeOf(e);
-  if(c==='Escape'||c==='KeyP'){ e.preventDefault(); togglePause(); return; }
+  /* a rebind swallows the very next key, so this must come first */
+  if(rebindFor){ e.preventDefault(); optCaptureKey(c); return; }
+  if(optionsOpen){
+    e.preventDefault();
+    const N=OPT_ROWS.length;
+    if(c==='Escape')                 closeOptions();
+    else if(c==='ArrowUp'||c==='KeyW')    optSel=(optSel+N-1)%N;
+    else if(c==='ArrowDown'||c==='KeyS')  optSel=(optSel+1)%N;
+    else if(c==='ArrowLeft'||c==='KeyA')  optAdjust(-1);
+    else if(c==='ArrowRight'||c==='KeyD') optAdjust(1);
+    else if(c==='Enter'||c==='Space'||c==='KeyZ') optChoose();
+    return;
+  }
+  if(c==='Escape'){ e.preventDefault(); togglePause(); return; }
   if(c==='KeyF'){ e.preventDefault(); toggleFullscreen(); return; }
   if(paused){
     e.preventDefault();
@@ -1994,6 +2020,12 @@ addEventListener('keydown',e=>{
     if(c==='Enter'||c==='Space'||c==='KeyZ') pauseChoose();
     return;
   }
+  if(state==='GAMEOVER' && stateT>75){
+    if(c==='ArrowUp'||c==='KeyW')   { goSel=(goSel+GO_ITEMS.length-1)%GO_ITEMS.length; return; }
+    if(c==='ArrowDown'||c==='KeyS') { goSel=(goSel+1)%GO_ITEMS.length; return; }
+    if(c==='Enter'||c==='Space'||c==='KeyZ'){ e.preventDefault(); goChoose(); return; }
+  }
+  if(state==='TITLE' && c==='KeyO'){ e.preventDefault(); openOptions('title'); return; }
   if(actionFor(e)!=='start') return;
   doStart();
 });
@@ -2113,7 +2145,8 @@ if(isTouch){
    State is written on EDGES only, so a pad and the keyboard can be used in the
    same session without one clobbering the other every poll. */
 const PAD_DZ=0.42;
-let padPrev={}, padWasStart=false, padIndex=null, padNav={u:false,d:false,a:false};
+let padPrev={}, padWasStart=false, padIndex=null,
+    padNav={u:false,d:false,a:false,l:false,r:false,b:false};
 addEventListener('gamepadconnected',e=>{ padIndex=e.gamepad.index; });
 addEventListener('gamepaddisconnected',()=>{ padIndex=null; padPrev={}; });
 function activePad(){
@@ -2135,22 +2168,40 @@ function pollPad(){
   setPad('fire', B(2)||B(5)||B(7));            /* X / RB / RT */
   setPad('jump', B(0)||B(4)||B(6));            /* A / LB / LT */
   const nu=B(12)||ay<-PAD_DZ, nd=B(13)||ay>PAD_DZ, na=B(0)||B(2);
-  if(paused){
+  const nl=B(14)||ax<-PAD_DZ, nr=B(15)||ax>PAD_DZ, nb=B(1);
+  if(optionsOpen){
+    const N=OPT_ROWS.length;
+    if(nb&&!padNav.b){ if(rebindFor) rebindFor=null; else closeOptions(); }
+    else if(!rebindFor){
+      if(nu&&!padNav.u) optSel=(optSel+N-1)%N;
+      if(nd&&!padNav.d) optSel=(optSel+1)%N;
+      if(nl&&!padNav.l) optAdjust(-1);
+      if(nr&&!padNav.r) optAdjust(1);
+      if(na&&!padNav.a) optChoose();
+    }
+  } else if(paused){
     if(nu&&!padNav.u) pauseSel=(pauseSel+PAUSE_ITEMS.length-1)%PAUSE_ITEMS.length;
     if(nd&&!padNav.d) pauseSel=(pauseSel+1)%PAUSE_ITEMS.length;
     if(na&&!padNav.a) pauseChoose();
+  } else if(state==='GAMEOVER' && stateT>75){
+    if(nu&&!padNav.u) goSel=(goSel+GO_ITEMS.length-1)%GO_ITEMS.length;
+    if(nd&&!padNav.d) goSel=(goSel+1)%GO_ITEMS.length;
+    if(na&&!padNav.a) goChoose();
   }
+  padNav.l=nl; padNav.r=nr; padNav.b=nb;
   padNav={u:nu,d:nd,a:na};
   const st=B(9)||B(8);                          /* Start / Back */
-  if(st && !padWasStart){
-    if(state==='PLAY') togglePause(); else doStart();
+  if(st && !padWasStart && !optionsOpen){
+    if(state==='PLAY') togglePause();
+    else if(state==='GAMEOVER' && stateT>75) goChoose();
+    else doStart();
   }
   padWasStart=st;
 }
 
 /* ------------------------------------------------------ pause / fullscreen */
 let paused=false, pauseSel=0;
-const PAUSE_ITEMS=['RESUME','RESTART STAGE','FULLSCREEN','QUIT TO TITLE'];
+const PAUSE_ITEMS=['RESUME','RESTART STAGE','OPTIONS','FULLSCREEN','QUIT TO TITLE'];
 function togglePause(){
   if(state!=='PLAY') return;
   paused=!paused; pauseSel=0;
@@ -2171,6 +2222,7 @@ function pauseChoose(){
   const it=PAUSE_ITEMS[pauseSel];
   if(it==='RESUME') togglePause();
   else if(it==='RESTART STAGE'){ paused=false; if(Audio_.ac) Audio_.ac.resume(); restartStage(); }
+  else if(it==='OPTIONS') openOptions('pause');
   else if(it==='FULLSCREEN') toggleFullscreen();
   else if(it==='QUIT TO TITLE'){ paused=false; if(Audio_.ac) Audio_.ac.resume();
     stage=1; buildBackdrop(); buildLevel(); resetRun(); state='TITLE'; titleT=0; }
@@ -2194,6 +2246,155 @@ function drawPause(g){
   }
   drawTextC(g,'STAGE '+stage+'   SCORE '+String(score).padStart(6,'0'),W/2,H-34,'#6d7a8c',1);
   drawTextC(g, isTouch?'TAP A LINE':'ARROWS + '+(activePad()?'A':'ENTER'), W/2,H-20,'#4e5a6b',1);
+}
+
+
+/* =============================================================== settings ==
+   Everything the player can change, plus their best run, in one versioned
+   localStorage record. Writes are wrapped because private-mode Safari throws on
+   setItem, and a save failure must never take the game down. */
+const SAVE_KEY='ironvine.v1';
+const DEF_BINDS={ l:['ArrowLeft','KeyA'], r:['ArrowRight','KeyD'],
+  u:['ArrowUp','KeyW'], d:['ArrowDown','KeyS'],
+  fire:['KeyZ','KeyJ'], jump:['KeyX','KeyK','Space'],
+  start:['Enter'], mute:['KeyM'] };
+const settings={ master:0.5, music:0.30, sfx:0.55, muted:false, fullscreen:false,
+                 binds:JSON.parse(JSON.stringify(DEF_BINDS)) };
+const best={ score:0, stage:1 };
+let continuesUsed=0;
+
+function saveState(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify({settings,best})); }catch(e){}
+}
+function loadState(){
+  try{
+    const j=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+    if(!j) return;
+    if(j.settings){
+      for(const k of ['master','music','sfx']) if(typeof j.settings[k]==='number')
+        settings[k]=clamp(j.settings[k],0,1);
+      if(typeof j.settings.muted==='boolean') settings.muted=j.settings.muted;
+      if(typeof j.settings.fullscreen==='boolean') settings.fullscreen=j.settings.fullscreen;
+      if(j.settings.binds) for(const a in DEF_BINDS)
+        if(Array.isArray(j.settings.binds[a]) && j.settings.binds[a].length)
+          settings.binds[a]=j.settings.binds[a].slice(0,3);
+    }
+    if(j.best){ best.score=j.best.score|0; best.stage=Math.max(1,j.best.stage|0); }
+  }catch(e){}
+}
+function applyVolumes(){
+  Audio_.muted=settings.muted;
+  if(!Audio_.master) return;
+  Audio_.master.gain.value = settings.muted ? 0 : settings.master;
+  Audio_.mus.gain.value = settings.music;
+  Audio_.sfx.gain.value = settings.sfx;
+}
+function recordBest(){
+  let dirty=false;
+  if(score>best.score){ best.score=score; dirty=true; }
+  if(stage>best.stage){ best.stage=stage; dirty=true; }
+  if(dirty) saveState();
+}
+
+/* ================================================================ options ==
+   One row list driven by the same nav as the pause menu. Sliders take left/right,
+   binds capture the next key pressed. */
+let optionsOpen=false, optSel=0, rebindFor=null, optFrom='title';
+const OPT_ROWS=[
+  {k:'master', label:'MASTER VOLUME', type:'slider'},
+  {k:'music',  label:'MUSIC VOLUME',  type:'slider'},
+  {k:'sfx',    label:'SFX VOLUME',    type:'slider'},
+  {k:'muted',  label:'MUTE',          type:'toggle'},
+  {k:'fullscreen', label:'FULLSCREEN', type:'fs'},
+  {a:'l',    label:'LEFT',  type:'bind'},
+  {a:'r',    label:'RIGHT', type:'bind'},
+  {a:'u',    label:'UP',    type:'bind'},
+  {a:'d',    label:'DOWN',  type:'bind'},
+  {a:'fire', label:'FIRE',  type:'bind'},
+  {a:'jump', label:'JUMP',  type:'bind'},
+  {type:'reset', label:'RESET TO DEFAULTS'},
+  {type:'back',  label:'BACK'}
+];
+function openOptions(from){ optionsOpen=true; optSel=0; rebindFor=null; optFrom=from||'title'; }
+function closeOptions(){ optionsOpen=false; rebindFor=null; saveState(); }
+function keyLabel(code){
+  return String(code||'').replace(/^Key/,'').replace(/^Digit/,'')
+    .replace(/^Arrow/,'').replace('Space','SPACE').toUpperCase();
+}
+function optAdjust(dir){
+  const row=OPT_ROWS[optSel]; if(!row) return;
+  if(row.type==='slider'){
+    settings[row.k]=clamp(+(settings[row.k]+dir*0.1).toFixed(2),0,1);
+    applyVolumes(); if(dir>0) Audio_.tone(880,0.04,'square',0.10); saveState();
+  } else if(row.type==='toggle'){
+    settings.muted=!settings.muted; applyVolumes(); saveState();
+  }
+}
+function optChoose(){
+  const row=OPT_ROWS[optSel]; if(!row) return;
+  if(row.type==='bind'){ rebindFor=row.a; return; }
+  if(row.type==='toggle'||row.type==='slider'){ optAdjust(1); return; }
+  if(row.type==='fs'){ settings.fullscreen=!settings.fullscreen; toggleFullscreen(); saveState(); return; }
+  if(row.type==='reset'){
+    settings.binds=JSON.parse(JSON.stringify(DEF_BINDS));
+    settings.master=0.5; settings.music=0.30; settings.sfx=0.55; settings.muted=false;
+    applyVolumes(); saveState(); Audio_.coin(); return;
+  }
+  if(row.type==='back') closeOptions();
+}
+/* capture a key for the row being rebound; Escape cancels */
+function optCaptureKey(code){
+  if(!rebindFor) return false;
+  if(code==='Escape'){ rebindFor=null; return true; }
+  for(const a in settings.binds)                     /* keep bindings unique */
+    settings.binds[a]=settings.binds[a].filter(c=>c!==code);
+  settings.binds[rebindFor]=[code].concat(settings.binds[rebindFor]).slice(0,2);
+  if(!settings.binds[rebindFor].length) settings.binds[rebindFor]=[code];
+  rebindFor=null; saveState(); Audio_.coin();
+  return true;
+}
+function drawOptions(g){
+  /* near-opaque: the title art behind this is busy and was reading through */
+  g.fillStyle='rgba(3,6,10,.97)'; g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(230,57,70,.5)'; g.fillRect(0,20,W,1);
+  drawTextCSh(g,'OPTIONS',W/2,6,'#ffe27a','#3a1a10',2);
+  for(let i=0;i<OPT_ROWS.length;i++){
+    const row=OPT_ROWS[i], on=i===optSel, y=26+i*13;
+    if(on){ g.fillStyle='rgba(255,226,122,.13)'; g.fillRect(18,y-3,W-36,12); }
+    const col=on?'#ffe27a':'#8a97a8';
+    drawText(g,(on?'>':' ')+row.label,24,y,col,1);
+    if(row.type==='slider'){
+      /* drawn, not spelled: the bitmap font has no # or [ ] glyphs */
+      const nb=Math.round(settings[row.k]*10);
+      for(let c=0;c<10;c++){
+        g.fillStyle = c<nb ? (on?'#ffe27a':'#7f8b9c') : 'rgba(255,255,255,.10)';
+        g.fillRect(W-30-(10-c)*8, y, 6, 7);
+      }
+    } else {
+      let val='';
+      if(row.type==='toggle') val=settings.muted?'ON':'OFF';
+      else if(row.type==='fs') val=(document.fullscreenElement?'ON':'OFF');
+      else if(row.type==='bind') val=(rebindFor===row.a)?'PRESS A KEY':
+        settings.binds[row.a].map(keyLabel).join(' / ');
+      if(val) drawText(g,val,W-24-textW(val,1),y,rebindFor===row.a?'#ff9c3f':col,1);
+    }
+  }
+  drawTextC(g,'ESC OR BACK TO CLOSE  -  PAD AND KEYBOARD BOTH WORK',W/2,H-11,'#4e5a6b',1);
+}
+
+/* =============================================================== continues ==
+   Losing your last life used to dump you to the title with both stages to
+   replay. A continue rebuilds the current stage with a fresh set of lives and
+   keeps the score you earned. */
+let goSel=0;
+const GO_ITEMS=['CONTINUE','OPTIONS','QUIT TO TITLE'];
+function goChoose(){
+  const it=GO_ITEMS[goSel];
+  if(it==='CONTINUE'){
+    continuesUsed++; lives=konamiOn?30:3;
+    restartStage(); Audio_.coin();
+  } else if(it==='OPTIONS'){ openOptions('gameover'); }
+  else { stage=1; buildBackdrop(); buildLevel(); resetRun(); state='TITLE'; titleT=0; }
 }
 
 /* ------------------------------------------------------------ mouse input */
@@ -2238,6 +2439,7 @@ addEventListener('orientationchange',()=>setTimeout(fit,120));
 if(window.visualViewport) visualViewport.addEventListener('resize',fit);
 
 /* ------------------------------------------------------------------ start */
+loadState();
 buildSprites();
 buildBackdrop();
 buildLevel();

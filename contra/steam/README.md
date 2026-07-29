@@ -3,6 +3,17 @@
 The game is one self-contained HTML file. This folder wraps it in Electron so it
 can ship as a Windows executable.
 
+### On Windows, without a terminal
+
+Two double-click scripts sit in this folder:
+
+- **`run-windows.bat`** — installs dependencies on first run, then launches the game.
+- **`build-windows.bat`** — builds `dist\win-unpacked\IRONVINE.exe` and opens the folder.
+
+Both check for Node.js first and say what to do if it is missing.
+
+### From a terminal
+
 ```bash
 npm install
 npm start          # runs copy-game.js, then launches it

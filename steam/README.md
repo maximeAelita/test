@@ -6,8 +6,34 @@ can ship as a Windows executable.
 ```bash
 npm install
 npm start          # runs copy-game.js, then launches it
-npm run dist       # unpacked build into dist/
+npm run dist       # Windows x64 -> dist/win-unpacked/
+npm run dist:linux # Linux x64  -> dist/linux-unpacked/   (Steam Deck)
 ```
+
+Both targets emit an unpacked folder rather than an installer, which is what Steam
+wants to upload.
+
+## Verified
+
+The Linux package was built and launched here, and the game runs, plays and holds
+~60 fps from it. The Windows package builds to a valid PE32+ x86-64 executable with
+the game inside `resources/app.asar`. **It has not been executed** — that needs an
+actual Windows machine.
+
+### Cross-building Windows from Linux
+
+`electron-builder --win` fails at the code-signing step on Linux: `app-builder`
+cannot run the signing tool. Steam does not require a signed executable, so skip it:
+
+```bash
+CSC_IDENTITY_AUTO_DISCOVERY=false \
+  npx electron-builder --win --x64 -c.win.signAndEditExecutable=false
+```
+
+That flag also skips `rcedit`, which is what embeds the icon and version metadata
+into the `.exe` — so a Linux-built Windows exe carries Electron's default icon.
+Build on Windows and both steps work with no flags, which is why the flag is not
+baked into `package.json`.
 
 `copy-game.js` pulls `../index.html`, `../manifest.json` and `../icons/*.png` into
 `game/`. That folder and `dist/` are build products and are gitignored — the parent

@@ -127,6 +127,18 @@ Shoot down the falcon pods that fly overhead to drop a weapon crate.
 | **F** | Flame | Spiralling fireballs. |
 | **B** | Barrier | Ten seconds of invulnerability. |
 
+## Power-ups
+
+Falcon crates carry these as well as guns — a dark purple crate is a power-up, a red
+one is a weapon. They stack with whatever gun you are holding, and each shows a
+countdown pip in the HUD.
+
+| | Power-up | Lasts | Effect |
+| --- | --- | --- | --- |
+| **G** | Ghost | 8s | You go invisible. Everything that shoots keeps aiming at the spot where you vanished — the decoy is drawn faintly so you can see what they think they're tracking — and enemies walk straight through you. Bullets already in the air still hurt. |
+| **O** | Overclock | 7s | Every enemy, every enemy bullet and the boss all drop to half speed. You don't. |
+| **D** | Drone | 10s | A companion orbits you and auto-fires at the nearest enemy — or at the boss if nothing else is in range. It holds fire when there's nothing to shoot. |
+
 ## Shield
 
 You carry a shield that soaks **3 hits**. Each absorb costs a pip, flashes the ring
@@ -194,7 +206,10 @@ Everything is procedural. There is not a single `.png` shipped with the game
 
 - **Sprites** are ASCII-art string arrays paired with palette maps, rasterised
   into offscreen canvases at boot, with flipped and hit-flash variants baked
-  per sprite.
+  per sprite. Motion on top of that is procedural rather than more frames:
+  firing kicks the sprite back and ejects brass with a puff of muzzle smoke,
+  landing hard squashes it and kicks dust off the deck, and infantry tumble away
+  from the hit and settle on the ground instead of vanishing in the flash.
 - **The jungle** — sky gradient, moon, mountain ridges, palm silhouettes, dirt
   strata, grass, vines, the fortress masonry — is painted once into layered
   offscreen canvases using value-noise fBm, then scrolled at four parallax

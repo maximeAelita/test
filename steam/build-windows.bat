@@ -6,6 +6,30 @@ REM ---------------------------------------------------------------------------
 setlocal
 cd /d "%~dp0"
 
+REM Double-clicking this file from inside Explorer's ZIP preview copies ONLY this
+REM file to a temp folder and runs it there, so nothing it needs is present.
+if not exist "package.json" (
+  echo.
+  echo   This script is not running from the extracted project folder.
+  echo.
+  echo   It is running here:
+  echo     %~dp0
+  echo   and package.json is not next to it.
+  echo.
+  echo   That usually means the ZIP was opened rather than extracted. Double-
+  echo   clicking a file inside a ZIP window copies out only that one file.
+  echo.
+  echo   Fix: right-click the downloaded .zip in File Explorer, choose
+  echo   "Extract All...", extract it somewhere simple such as D:\ironvine,
+  echo   then run this file from the extracted contra\steam folder.
+  echo.
+  echo   You are in the right place when package.json, main.js and copy-game.js
+  echo   sit next to this .bat file.
+  echo.
+  pause
+  exit /b 1
+)
+
 where node >nul 2>nul
 if errorlevel 1 (
   echo.

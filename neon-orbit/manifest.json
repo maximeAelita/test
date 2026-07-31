@@ -2,7 +2,7 @@
   "name": "NEON ORBIT",
   "short_name": "Neon Orbit",
   "description": "One-thumb neon arcade climber — drift into orbit, tap to sling, climb forever.",
-  "start_url": "./neon-orbit.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

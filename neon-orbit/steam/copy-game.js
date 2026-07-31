@@ -3,6 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 fs.mkdirSync(path.join(__dirname, 'game'), { recursive: true });
-fs.copyFileSync(path.join(__dirname, '..', 'neon-orbit.html'),
+fs.copyFileSync(path.join(__dirname, '..', 'index.html'),
                 path.join(__dirname, 'game', 'index.html'));
-console.log('copied neon-orbit.html -> steam/game/index.html');
+console.log('copied index.html -> steam/game/index.html');

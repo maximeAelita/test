@@ -2,35 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<!-- Root entry point: NEON ORBIT is the default game. Redirect to it, carrying the
-     install metadata so adding THIS url (…/test/) to the home screen still works. -->
-<meta http-equiv="refresh" content="0; url=neon-orbit.html">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="NEON ORBIT">
-<meta name="mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#05060f">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
-<link rel="manifest" href="manifest.json">
-<title>NEON ORBIT</title>
+<title>Games</title>
+<!-- Hub, not a redirect. Each game now owns a folder with its own install
+     metadata, so home-screen installs happen from the game's own url. -->
 <style>
-html,body{margin:0;height:100%;background:#05060f;color:#0ff;
-  font-family:'Courier New',Courier,monospace;display:flex;align-items:center;justify-content:center}
-a{color:#ff0;text-shadow:0 0 10px #ff0;text-decoration:none;letter-spacing:2px;font-size:15px}
-.w{text-align:center}
-.t{font-size:26px;font-weight:bold;letter-spacing:6px;text-shadow:0 0 14px #0ff}
-.t b{color:#f0f;text-shadow:0 0 14px #f0f}
-p{color:#9db8d8;font-size:12px;letter-spacing:2px;margin:14px 0}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#05060f;color:#9db8d8;
+  font-family:'Courier New',Courier,monospace;-webkit-text-size-adjust:100%}
+body{display:flex;align-items:center;justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom))}
+.w{width:100%;max-width:560px}
+h1{font-size:22px;letter-spacing:8px;color:#0ff;text-shadow:0 0 14px #0ff;margin:0 0 4px;font-weight:bold}
+.sub{font-size:11px;letter-spacing:2px;color:#4a6b8a;margin:0 0 28px}
+a.g{display:block;text-decoration:none;border:1px solid #1b3550;border-radius:6px;
+  padding:16px 18px;margin-bottom:12px;background:#080b16;transition:border-color .15s,background .15s}
+a.g:hover,a.g:focus{border-color:#0ff;background:#0b1020;outline:none}
+.n{font-size:16px;letter-spacing:4px;color:#ff0;text-shadow:0 0 10px rgba(255,255,0,.5)}
+.n b{color:#f0f;text-shadow:0 0 10px rgba(255,0,255,.5)}
+.d{font-size:11px;letter-spacing:1px;color:#6d8bab;margin-top:7px;line-height:1.6}
+footer{font-size:10px;letter-spacing:1px;color:#33506e;margin-top:24px;line-height:1.8}
+footer a{color:#4a6b8a}
 </style>
 </head>
 <body>
 <div class="w">
-  <div class="t">NEON<b>ORBIT</b></div>
-  <p>LOADING&hellip;</p>
-  <a href="neon-orbit.html">TAP TO PLAY</a>
+  <h1>GAMES</h1>
+  <p class="sub">BROWSER &middot; NO INSTALL &middot; NO DEPENDENCIES</p>
+
+  <a class="g" href="neon-orbit/">
+    <div class="n">NEON<b>ORBIT</b></div>
+    <div class="d">One-thumb arcade climber. Drift into a planet's gravity to orbit
+      it, tap to sling off along your tangent, chain slings to climb forever. Portrait.</div>
+  </a>
+
+  <a class="g" href="neon-tank/">
+    <div class="n">NEON<b>TANK</b></div>
+    <div class="d">Top-down arena tank shooter. Destructible brick, steel and water,
+      eight bosses with their own mechanics, and upgrades between phases.</div>
+  </a>
+
+  <a class="g" href="echo-dungeon/">
+    <div class="n">ECHO<b>DUNGEON</b></div>
+    <div class="d">3D puzzle RPG played mostly by ear. An offline build sits
+      alongside it at echo-dungeon/offline.html</div>
+  </a>
+
+  <footer>
+    IRONVINE has moved to its own repository &mdash;
+    <a href="https://github.com/maximeAelita/ironvine">github.com/maximeAelita/ironvine</a><br>
+    Each folder is self-contained: its own icons, manifest and install metadata.
+  </footer>
 </div>
-<script>location.replace('neon-orbit.html');</script>
 </body>
 </html>

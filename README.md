@@ -1,129 +1,69 @@
-# Games in this repo
+# Games
 
-The site root (`index.html`) redirects to **NEON ORBIT**, the default game.
+Three browser games, one folder each. No build step, no package manager, no
+dependencies — every game is a single self-contained HTML file plus its install
+metadata.
 
-| Game | File | One-liner |
+**Play them:** <https://maximeaelita.github.io/test/>
+
+| Game | Folder | One-liner |
 | --- | --- | --- |
-| **NEON ORBIT** | [`neon-orbit.html`](./neon-orbit.html) | One-thumb iOS arcade climber — orbit planets, tap to sling, don't fall (default at the site root) |
-| **ECHO DUNGEON** | [`echo-dungeon.html`](./echo-dungeon.html) | 3D anime puzzle RPG played mostly by ear (below) |
-| **NEON TANK** | [`neon-tank.html`](./neon-tank.html) | Top-down neon arena tank shooter with bosses and upgrades |
-| **CONTRA** | [`contra/`](./contra) | Run-and-gun homage to Contra stage 1 — landscape, installable, on-screen pad on mobile |
+| **NEON ORBIT** | [`neon-orbit/`](./neon-orbit) | One-thumb arcade climber — orbit planets, tap to sling, don't fall. Portrait, built for iPhone. |
+| **NEON TANK** | [`neon-tank/`](./neon-tank) | Top-down arena tank shooter — destructible terrain, eight bosses, upgrades between phases. |
+| **ECHO DUNGEON** | [`echo-dungeon/`](./echo-dungeon) | 3D puzzle RPG played mostly by ear. |
 
-## NEON ORBIT
+**IRONVINE** used to live here as `contra/`. It has moved to its own repository:
+**<https://github.com/maximeAelita/ironvine>** — it is heading for a commercial
+Steam release and needed its own name, issues and releases rather than sharing a
+repo called `test`. Its full history came with it.
 
-A portrait, one-thumb arcade game built for iPhone (works everywhere). Drift into a
-planet's gravity and you orbit it; **tap to sling off along your tangent**. Gravity
-arcs you back down, so chain slings from planet to planet to climb forever. Grab
-&#9733; stars (+15 each) and don't fall off the bottom of the screen.
+## Layout
 
-Hazards ramp with altitude: magenta **spiked planets** can't be latched and kill on
-contact; **black holes** (violet) bend your flight arc and shred you at the core;
-amber **decay planets** shrink your orbit toward the surface — sling off before it
-crushes you. Latching fresh planets back-to-back without bouncing builds a
-**chain combo** worth escalating bonus points. Ten local **trophies** (height
-milestones, chain lengths, a black-hole graze, a last-instant decay escape) unlock
-with a toast and persist in `localStorage`, alongside the high score — they map
-1:1 onto Steam achievements for the desktop build.
+Every game folder is self-contained and follows the same shape:
 
-Open `neon-orbit.html` in any browser. The game is a single self-contained file
-(zero dependencies) with an accompanying `manifest.json` and `icons/` so it installs
-as a proper web app.
-
-### Install on your iPhone home screen
-
-The game ships everything needed to install as a full-screen app with the custom
-NEON ORBIT icon (`apple-touch-icon` + web manifest, safe-area padding, zoom/scroll
-suppression). You just need to open it from a **URL** in Safari — the simplest way is
-GitHub Pages:
-
-1. In this repo, go to **Settings → Pages**.
-2. Under **Build and deployment**, set **Source: Deploy from a branch**, branch
-   **`main`**, folder **`/ (root)`**, and Save.
-3. Wait ~1 minute, then on your iPhone open **Safari** at
-   **`https://maximeaelita.github.io/test/neon-orbit.html`**
-4. Tap the **Share** button → **Add to Home Screen** → **Add**.
-
-You'll get a NEON ORBIT icon on your home screen that launches full-screen with no
-Safari chrome, like a native app. (Hosting the whole repo means `manifest.json` and
-`icons/` are served alongside the game, which is what supplies the icon.)
-
-On Android/desktop Chrome the same URL offers an **Install app** prompt via the
-manifest.
-
-**NEON TANK** is installable the same way — open
-`https://maximeaelita.github.io/test/neon-tank.html` in Safari and **Add to Home
-Screen**. It has its own tank icon (`icons-tank/`) and manifest (`manifest-tank.json`).
-
-**CONTRA** is installable the same way — open
-`https://maximeaelita.github.io/test/contra/` in Safari and **Add to Home Screen**. It
-keeps its icon and manifest inside its own folder (`contra/icons/`, `contra/manifest.json`).
-Play it in **landscape**: on touch devices it shows an on-screen thumbstick plus
-FIRE/JUMP buttons, and prompts you to rotate if you're in portrait. See
-[`contra/README.md`](./contra/README.md).
-
-**On PC** the game is desktop-grade: crisp high-DPI rendering, letterboxed
-widescreen presentation, and gamepad support (A = sling, Start = pause — Steam
-Deck friendly). Keys: click/`Space` sling · `Esc` pause · `R` restart ·
-`M` sound · `F` fullscreen. The [`steam/`](./steam) folder wraps the game in
-Electron with a build + Steamworks checklist for shipping it on Steam.
-
-# ECHO DUNGEON
-
-A 3D anime-styled **Puzzle RPG** that you play mostly by ear.
-
-> The dungeon is completely dark. Every movement sends out a wave of sound that
-> briefly reveals the walls, enemies and treasure around you. Between pulses there
-> is only black — you navigate by **sound and memory**.
-
-Single self-contained file: [`echo-dungeon.html`](./echo-dungeon.html). No build step.
-
-> **Offline / on-device:** [`echo-dungeon-offline.html`](./echo-dungeon-offline.html) is the
-> same game with Three.js inlined — one file, **no internet required**. Save it and open it
-> in any browser (great for phones/tablets). `echo-dungeon.html` is the slim version that
-> pulls Three.js from a CDN.
-
-## Play
-
-Open `echo-dungeon.html` in any modern browser, or serve the folder:
-
-```bash
-python3 -m http.server
-# then visit http://localhost:8000/echo-dungeon.html
+```
+<game>/
+  index.html      the entire game
+  manifest.json   PWA metadata, start_url "./"
+  icons/          home-screen icons
+  steam/          Electron wrapper, where one exists
 ```
 
-Audio (including the spatial enemy pings) unlocks on your first click/tap/keypress,
-as browsers require.
+Nothing at the repo root belongs to a particular game any more. The root
+[`index.html`](./index.html) is a hub that links to the three folders — it used to
+redirect straight to NEON ORBIT, which is why NEON ORBIT's assets were sitting
+loose at the root.
 
-### Controls
+## Install on a phone home screen
 
-| Action | PC | Mobile |
-| --- | --- | --- |
-| Move | `W A S D` / arrow keys | left-side virtual joystick |
-| Echo pulse | `Space` | **PULSE** button |
-| Pause | `Esc` | — |
+Open the **game's own folder URL** in Safari — not the repo root — then
+**Share → Add to Home Screen**:
 
-## The hook
+- `https://maximeaelita.github.io/test/neon-orbit/`
+- `https://maximeaelita.github.io/test/neon-tank/`
+- `https://maximeaelita.github.io/test/echo-dungeon/`
 
-* **Movement = light.** Walking emits small footstep waves; the **echo pulse** emits
-  a big charged wave (with a cooldown). **Resonance plates** on the floor ring out a
-  huge reveal when you step on them.
-* **Enemies reveal themselves** by periodically pinging — those pings are *spatialised*
-  (Web Audio HRTF), so you can literally hear which direction danger is coming from.
-* Colour-coded reveals: walls (blue), the **sigil/key** (amber), **relics** (gold),
-  the **exit portal** (green), enemies (red).
+Each folder carries its own `apple-touch-icon`, manifest, theme colour and
+orientation lock, so each installs as a separate app with its own icon. On
+Android/desktop Chrome the same URLs offer an **Install app** prompt.
 
-## Goal
+> If you previously installed from `…/test/` you had NEON ORBIT, because the root
+> redirected there. That shortcut now lands on the hub instead — remove it and
+> re-add from `…/test/neon-orbit/`.
 
-Find the floating **sigil**, then reach the **exit portal** to descend to the next,
-larger floor. Touching an enemy costs integrity. Collect relics along the way. Each
-descent heals you a little — see how deep you can go.
+## Run locally
 
-## Tech
+```bash
+python3 -m http.server 8000
+```
 
-* **Three.js** (loaded from CDN via an import map) — no local dependencies.
-* A single custom **echo shader** is shared by every surface (instanced walls + floor +
-  actors). It accumulates light from up to 16 simultaneous expanding wavefronts, with
-  cel/anime banding and a rim term; black back-face outlines give actors the toon look.
-* **75% internal render scale** upscaled to the viewport, with a delta-timed loop
-  targeting 60fps. Walls use an `InstancedMesh`; fully-buried wall cells are skipped.
-* Keyboard, mouse and touch input; mobile zoom/scroll gestures are suppressed.
+Then open <http://localhost:8000/>. Or just open any game's `index.html` in a
+browser directly — none of them need a server.
+
+## Desktop builds
+
+[`neon-orbit/steam/`](./neon-orbit/steam) wraps NEON ORBIT in Electron for a
+Windows build. `npm start` runs it, `npm run dist` packages it; `steam/game/` and
+`steam/dist/` are build products and are gitignored.
+
+NEON TANK and ECHO DUNGEON are browser-only.

@@ -15,6 +15,7 @@ _book
 *.mobi
 *.pdf
 
-# Steam/Electron build products
-steam/dist
-steam/game
+# Steam/Electron build products. Each game keeps its wrapper in <game>/steam/,
+# so these have to match at any depth rather than only at the repo root.
+**/steam/dist
+**/steam/game
